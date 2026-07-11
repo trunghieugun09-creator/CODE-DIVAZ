@@ -1,0 +1,42 @@
+--code số 21: Auto xóa 1 lần, không GUI
+local function xoaTatCa()
+    local ds = {
+        "House", "Houses",
+        "SoundArea", "SoundAreas",
+        "Tree", "Trees",
+        "NPC", "NPCs",
+        "ATM", "ATMs",
+        "Building", "Buildings",
+        "Cashier", "Cashiers",
+        "Dirt", "Dirts",
+        "Door", "Doors",
+        "Dumpster", "Dumpsters",
+        "Lightpole", "Lightpoles",
+        "Showcase", "Showcases",
+        "Terrain", "Terrains",
+        "InvisibleWall", "InvisibleWalls",
+        "Job", "Jobs",
+        "SlideWalk", "SlideWalks",
+        "BeachAsset", "BeachAssets",
+        "BeachShower", "BeachShowers",
+        "Yacht", "Yachts",
+        "Yacht2", "Yacht2s",
+        "Boat", "Boats",
+        "Jetski", "Jetskis",
+        "Speedboat", "Speedboats",
+        "Basketball", "Basketballs"
+    }
+    local count = 0
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.ClassName == "Tool" or obj.ClassName == "HopperBin" then continue end
+        for _, t in ipairs(ds) do
+            if obj.Name == t or obj.ClassName == t then
+                pcall(function() obj:Destroy() end)
+                count = count + 1
+                break
+            end
+        end
+    end
+end
+
+xoaTatCa()
