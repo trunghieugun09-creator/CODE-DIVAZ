@@ -1,0 +1,917 @@
+--[[
+    AUTO PIZZA DELIVERY + UNDERGROUND (DƯỚI LÒNG ĐẤT)
+    - Xuống đất TRƯỚC rồi mới mua mặt nạ + lấy pizza
+    - GUI: START/STOP + tổng tiền + thu nhập + thời gian + hạn mức
+    - AUTO RESTART KHI CHẾT/RESET/RƠI VOID
+    - HẠN MỨC: Tự động bù phần còn thiếu -> Kick hiện nội dung
+--]]
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+pcall(function()
+    local old = PlayerGui:FindFirstChild("PIZZA_FARM_GUI")
+    if old then old:Destroy() end
+end)
+
+local Remote = ReplicatedStorage:WaitForChild("Event")
+local Enabled = false
+local SPEED = 30
+local FLY_SPEED = 200
+local NoclipOn = true
+local HEAD_OFFSET = 6
+local UndergroundY = -HEAD_OFFSET
+local IsBusy = false
+local isEquipping = false
+local IsRestarting = false
+local MaskReady = false
+local IsKicked = false
+
+local MoneyLimit = 0
+local LimitEnabled = false
+
+local StartTime = 0
+local TotalTime = 0
+local TotalEarned = 0
+local lastKnownMoney = 0
+local CollectedMoneyList = {}
+
+local function getBaseMoney()
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if leaderstats then
+        local moneyValue = leaderstats:FindFirstChild("Money") or leaderstats:FindFirstChild("Cash") or leaderstats:FindFirstChild("Dollars") or leaderstats:FindFirstChild("Points") or leaderstats:FindFirstChild("Coin")
+        if moneyValue then return moneyValue.Value end
+    end
+    return 0
+end
+
+local function formatMoney(amount)
+    if amount >= 1000000 then return string.format("%.1fM", amount / 1000000)
+    elseif amount >= 1000 then return string.format("%.0fk", amount / 1000)
+    else return tostring(amount) end
+end
+
+local function formatWithComma(amount)
+    local formatted = tostring(amount)
+    local result = ""
+    local count = 0
+    for i = #formatted, 1, -1 do
+        result = formatted:sub(i, i) .. result
+        count = count + 1
+        if count % 3 == 0 and i > 1 then result = "." .. result end
+    end
+    return result
+end
+
+local function checkMoneyLimit()
+    if not LimitEnabled or MoneyLimit <= 0 then return false end
+    if TotalEarned >= MoneyLimit then return true end
+    return false
+end
+
+local function onLimitReached()
+    if IsKicked then return end
+    IsKicked = true
+    
+    local currentTotalMoney = getBaseMoney()
+    local endTime = os.date("%H:%M:%S")
+    local displayName = player.DisplayName
+    
+    Enabled = false
+    IsBusy = false
+    IsRestarting = false
+    TotalTime = TotalTime + (os.time() - StartTime)
+    StartTime = 0
+    
+    local frame = PlayerGui:FindFirstChild("PIZZA_FARM_GUI")
+    if frame then
+        local button = frame:FindFirstChild("StartStopButton")
+        if button then
+            button.Text = "▶ START"
+            button.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+            local stroke = button.Parent:FindFirstChild("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(255, 100, 0) end
+        end
+        local limitToggle = frame:FindFirstChild("LimitToggle")
+        if limitToggle then
+            LimitEnabled = false
+            limitToggle.Text = "OFF"
+            limitToggle.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+        end
+    end
+    
+    pcall(function() 
+        Remote:FireServer({["Event"] = "Notification", ["Message"] = "✅ Hoàn thành hạn mức " .. formatWithComma(MoneyLimit) .. "!"}) 
+    end)
+    
+    -- Kick ngay với nội dung
+    local kickMessage = displayName .. "|Tong tien: " .. formatWithComma(currentTotalMoney) .. "|Thu nhap: " .. formatWithComma(TotalEarned) .. "|End: " .. endTime
+    
+    task.wait(0.3)
+    
+    pcall(function()
+        player:Kick(kickMessage)
+    end)
+end
+
+local function updateEarnedMoney()
+    local currentMoney = getBaseMoney()
+    local earned = currentMoney - lastKnownMoney
+    if earned > 0 then TotalEarned = TotalEarned + earned end
+    lastKnownMoney = currentMoney
+    if checkMoneyLimit() then onLimitReached() end
+end
+
+local function resetMoneyCounter()
+    lastKnownMoney = getBaseMoney()
+    TotalEarned = 0
+end
+
+local function formatTime(seconds)
+    local hours = math.floor(seconds / 3600)
+    local mins = math.floor((seconds % 3600) / 60)
+    local secs = math.floor(seconds % 60)
+    return string.format("%02d:%02d:%02d", hours, mins, secs)
+end
+
+local function isMaskActivated()
+    local char = player.Character
+    if not char then return false end
+    for _, v in pairs(char:GetChildren()) do
+        if v:IsA("Tool") and v.Name == "Ski Mask" then return true end
+    end
+    local head = char:FindFirstChild("Head")
+    if head then
+        for _, v in pairs(head:GetChildren()) do
+            if v:IsA("Accessory") and v.Name:find("Ski") then return true end
+        end
+    end
+    return false
+end
+
+local function findPizzaInInventory()
+    local char = player.Character
+    local backpack = player:FindFirstChild("Backpack")
+    if char then
+        for _, v in pairs(char:GetChildren()) do
+            if v:IsA("Tool") and v.Name == "PizzaJob" then return v, "character" end
+        end
+    end
+    if backpack then
+        for _, v in pairs(backpack:GetChildren()) do
+            if v:IsA("Tool") and v.Name == "PizzaJob" then return v, "backpack" end
+        end
+    end
+    return nil, nil
+end
+
+local function goUnderground()
+    local char = player.Character
+    if not char then return false end
+    local hum = char:FindFirstChild("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return false end
+    NoclipOn = true
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") then v.CanCollide = false end
+    end
+    local groundY = hrp.Position.Y
+    UndergroundY = groundY - HEAD_OFFSET
+    hum.PlatformStand = true
+    workspace.Gravity = 0
+    hrp.CFrame = CFrame.new(hrp.Position.X, UndergroundY, hrp.Position.Z)
+    hrp.Velocity = Vector3.zero
+    task.wait(0.3)
+    return true
+end
+
+local function setupSkiMask()
+    if MaskReady then return true end
+    local char = player.Character
+    if not char then return false end
+    if isMaskActivated() then MaskReady = true return true end
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        for _, v in pairs(backpack:GetChildren()) do
+            if v:IsA("Tool") and v.Name == "Ski Mask" then
+                local hum = char:FindFirstChild("Humanoid")
+                if hum then
+                    hum:EquipTool(v)
+                    task.wait(0.5)
+                    pcall(function() v:Activate() end)
+                    task.wait(0.3)
+                    MaskReady = true
+                    return true
+                end
+            end
+        end
+    end
+    pcall(function()
+        local skiMaskTool = workspace.Map.Purchasable.Tool:FindFirstChild("Ski Mask")
+        if skiMaskTool then Remote:FireServer({["Event"] = "PurchaseTool", ["Tool"] = skiMaskTool}) end
+    end)
+    local maskTool = nil
+    for i = 1, 15 do
+        if backpack then
+            for _, v in pairs(backpack:GetChildren()) do
+                if v:IsA("Tool") and v.Name == "Ski Mask" then maskTool = v break end
+            end
+        end
+        if maskTool then break end
+        task.wait(0.2)
+    end
+    if not maskTool then return false end
+    local hum = char:FindFirstChild("Humanoid")
+    if hum then
+        hum:EquipTool(maskTool)
+        task.wait(0.5)
+        pcall(function() maskTool:Activate() end)
+        task.wait(0.3)
+    end
+    MaskReady = true
+    return true
+end
+
+local function forceEquipPizza()
+    local char = player.Character
+    if not char then return false end
+    local hum = char:FindFirstChild("Humanoid")
+    if not hum then return false end
+    for _, v in pairs(char:GetChildren()) do
+        if v:IsA("Tool") and v.Name == "PizzaJob" then return true end
+    end
+    local pizza, location = findPizzaInInventory()
+    if not pizza then return false end
+    for _, v in pairs(char:GetChildren()) do
+        if v:IsA("Tool") and v.Name ~= "Ski Mask" then v.Parent = player:FindFirstChild("Backpack") or player end
+    end
+    task.wait(0.1)
+    hum:EquipTool(pizza)
+    task.wait(0.2)
+    for _, v in pairs(char:GetChildren()) do
+        if v:IsA("Tool") and v.Name == "PizzaJob" then return true end
+    end
+    return false
+end
+
+local function getChar()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hum = char:WaitForChild("Humanoid")
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    return char, hum, hrp
+end
+
+local function enableNoclip(char)
+    NoclipOn = true
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") then v.CanCollide = false end
+    end
+end
+
+local function disableNoclip(char)
+    NoclipOn = false
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") then v.CanCollide = true end
+    end
+end
+
+local function enableFreefall(hum)
+    hum.PlatformStand = true
+    workspace.Gravity = 0
+end
+
+local function disableFreefall(hum, hrp)
+    hum.PlatformStand = false
+    hum.AutoRotate = true
+    workspace.Gravity = 196.2
+    if hrp then hrp.Velocity = Vector3.zero end
+    hum.WalkSpeed = SPEED
+end
+
+local function antiStuck(hrp)
+    hrp.Velocity = Vector3.new(150, 0, 0) task.wait(0.2)
+    hrp.Velocity = Vector3.new(-150, 0, 0) task.wait(0.2)
+    hrp.Velocity = Vector3.new(0, 0, 150) task.wait(0.2)
+    hrp.Velocity = Vector3.new(0, 0, -150) task.wait(0.2)
+    hrp.Velocity = Vector3.zero
+end
+
+local function getNewMoney()
+    local newMoney = {}
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("MeshPart") and #v.Name > 15 and not CollectedMoneyList[v.Name] then
+            table.insert(newMoney, v)
+        end
+    end
+    return newMoney
+end
+
+local function collectMoney(money)
+    pcall(function()
+        Remote:FireServer({["Event"] = "CollectDollar", ["Dollar"] = money})
+        CollectedMoneyList[money.Name] = true
+    end)
+end
+
+local function collectAllNewMoney()
+    for _, money in pairs(getNewMoney()) do collectMoney(money) end
+end
+
+local function calculateUndergroundY(zoneY)
+    return zoneY - HEAD_OFFSET
+end
+
+local function flyToTarget(targetPos, hum, hrp)
+    local startTime = tick()
+    local lastPos = hrp.Position
+    local stuckTime = 0
+    local isWaiting = false
+    local waitStartTime = 0
+    local failedAttempts = 0
+    local maxFailedAttempts = 3
+    
+    if not hum.PlatformStand then enableFreefall(hum) end
+    if UndergroundY then
+        hrp.CFrame = CFrame.new(hrp.Position.X, UndergroundY, hrp.Position.Z)
+        hrp.Velocity = Vector3.zero
+    end
+    
+    while Enabled and hrp and hrp.Parent do
+        local currentPos = hrp.Position
+        local flatCurrent = Vector3.new(currentPos.X, 0, currentPos.Z)
+        local flatTarget = Vector3.new(targetPos.X, 0, targetPos.Z)
+        local dist = (flatCurrent - flatTarget).Magnitude
+        
+        if dist <= 1.5 then hrp.Velocity = Vector3.zero return true end
+        
+        if tick() - startTime > 5 and not isWaiting then
+            isWaiting = true
+            waitStartTime = tick()
+            hrp.Velocity = Vector3.zero
+            if hrp and UndergroundY then hrp.CFrame = CFrame.new(hrp.Position.X, UndergroundY, hrp.Position.Z) end
+        end
+        
+        if isWaiting then
+            hrp.Velocity = Vector3.zero
+            if hrp and UndergroundY then hrp.CFrame = CFrame.new(hrp.Position.X, UndergroundY, hrp.Position.Z) end
+            if tick() - waitStartTime >= 2 then
+                isWaiting = false
+                startTime = tick()
+                failedAttempts = failedAttempts + 1
+                if failedAttempts >= maxFailedAttempts then hrp.Velocity = Vector3.zero return false end
+            end
+            task.wait()
+            continue
+        end
+        
+        if tick() - startTime > 20 then hrp.Velocity = Vector3.zero return false end
+        
+        if dist > 200 then
+            hrp.CFrame = CFrame.new(targetPos.X, UndergroundY, targetPos.Z)
+            hrp.Velocity = Vector3.zero
+            startTime = tick()
+            task.wait(0.5)
+            continue
+        end
+        
+        local direction = (flatTarget - flatCurrent).Unit
+        hrp.Velocity = Vector3.new(direction.X * FLY_SPEED, 0, direction.Z * FLY_SPEED)
+        
+        if math.abs(hrp.Position.Y - UndergroundY) > 0.5 then
+            hrp.CFrame = CFrame.new(hrp.Position.X, UndergroundY, hrp.Position.Z)
+            hrp.Velocity = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z)
+        end
+        
+        hum.AutoRotate = false
+        if direction.Magnitude > 0.01 then
+            hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(hrp.Position.X + direction.X, hrp.Position.Y, hrp.Position.Z + direction.Z))
+        end
+        
+        if (hrp.Position - lastPos).Magnitude < 0.5 then
+            stuckTime = stuckTime + 0.1
+            if stuckTime >= 2 then antiStuck(hrp) stuckTime = 0 end
+        else
+            stuckTime = 0
+        end
+        lastPos = hrp.Position
+        task.wait()
+    end
+    
+    hrp.Velocity = Vector3.zero
+    return false
+end
+
+local function triggerDelivery(prompt, hrp)
+    if hrp and hrp.Parent then hrp.Velocity = Vector3.zero end
+    pcall(function()
+        prompt:InputHoldBegin()
+        task.wait(0.15)
+        prompt:InputHoldEnd()
+    end)
+end
+
+local function findDelivery()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") and v.ActionText == "Deliver" then return v end
+    end
+    return nil
+end
+
+local function startJob()
+    pcall(function() Remote:FireServer({["Event"] = "StartJob", ["Job"] = "Pizza"}) end)
+end
+
+local function completeJobAndForceEquipPizza()
+    pcall(function() Remote:FireServer({["Event"] = "CompletedJob", ["Job"] = "Pizza"}) end)
+    task.wait(0.05)
+    forceEquipPizza()
+end
+
+local function isCharacterAlive()
+    local char = player.Character
+    if not char then return false end
+    local hum = char:FindFirstChild("Humanoid")
+    if not hum then return false end
+    if hum.Health <= 0 then return false end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    if hrp.Position.Y < -200 then return false end
+    return true
+end
+
+local function restartFarm()
+    if not Enabled then return end
+    if IsRestarting then return end
+    IsRestarting = true
+    IsBusy = false
+    isEquipping = false
+    UndergroundY = -HEAD_OFFSET
+    CollectedMoneyList = {}
+    MaskReady = false
+    local waited = 0
+    while Enabled and not isCharacterAlive() and waited < 30 do
+        task.wait(0.5)
+        waited = waited + 0.5
+    end
+    if not Enabled then IsRestarting = false return end
+    if not isCharacterAlive() then
+        Enabled = false
+        IsRestarting = false
+        local frame = PlayerGui:FindFirstChild("PIZZA_FARM_GUI")
+        if frame then
+            local button = frame:FindFirstChild("StartStopButton")
+            if button then
+                button.Text = "▶ START"
+                button.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+            end
+        end
+        return
+    end
+    goUnderground()
+    setupSkiMask()
+    IsRestarting = false
+    task.spawn(function() pcall(function() farm() end) end)
+end
+
+RunService.Heartbeat:Connect(function()
+    if not Enabled then return end
+    if IsRestarting then return end
+    local char = player.Character
+    if not char then restartFarm() return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hum and hum.Health <= 0 then restartFarm() return end
+    if hrp and hrp.Position.Y < -200 then restartFarm() return end
+    if Enabled and hrp and UndergroundY and not IsRestarting then
+        if math.abs(hrp.Position.Y - UndergroundY) > 2 then
+            hrp.CFrame = CFrame.new(hrp.Position.X, UndergroundY, hrp.Position.Z)
+            hrp.Velocity = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z)
+        end
+    end
+    if hum and not hum.PlatformStand then
+        if hum.WalkSpeed ~= SPEED then hum.WalkSpeed = SPEED end
+    end
+    if NoclipOn and char then enableNoclip(char) end
+    if Enabled and not isEquipping and not IsRestarting then
+        if char then
+            local hasPizza = false
+            for _, v in pairs(char:GetChildren()) do
+                if v:IsA("Tool") and v.Name == "PizzaJob" then hasPizza = true break end
+            end
+            if not hasPizza then task.spawn(function() forceEquipPizza() end) end
+        end
+    end
+end)
+
+player.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    if Enabled and not IsRestarting then
+        CollectedMoneyList = {}
+        UndergroundY = -HEAD_OFFSET
+        IsBusy = false
+        isEquipping = false
+        MaskReady = false
+        task.spawn(function()
+            pcall(function()
+                goUnderground()
+                setupSkiMask()
+                farm()
+            end)
+        end)
+    end
+end)
+
+function farm()
+    while Enabled do
+        if IsRestarting then task.wait(0.5) continue end
+        if IsBusy then task.wait(0.3) continue end
+        IsBusy = true
+        if not isCharacterAlive() then IsBusy = false restartFarm() continue end
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+            task.wait(1) IsBusy = false continue
+        end
+        forceEquipPizza()
+        startJob()
+        local prompt = nil
+        local findStart = tick()
+        repeat
+            if not Enabled or IsRestarting then IsBusy = false return end
+            if not isCharacterAlive() then IsBusy = false restartFarm() return end
+            prompt = findDelivery()
+            if prompt then break end
+            task.wait(0.2)
+        until tick() - findStart > 5
+        if not prompt then IsBusy = false task.wait(0.5) continue end
+        local char, hum, hrp = getChar()
+        if not char or not hum or not hrp then IsBusy = false task.wait(1) continue end
+        if not isCharacterAlive() then IsBusy = false restartFarm() continue end
+        local targetPos = prompt.Parent.Position
+        UndergroundY = calculateUndergroundY(targetPos.Y)
+        enableNoclip(char)
+        enableFreefall(hum)
+        hrp.CFrame = CFrame.new(hrp.Position.X, UndergroundY, hrp.Position.Z)
+        hrp.Velocity = Vector3.zero
+        local reached = flyToTarget(targetPos, hum, hrp)
+        if not isCharacterAlive() then IsBusy = false restartFarm() continue end
+        if not reached then
+            IsBusy = false
+            pcall(function() Remote:FireServer({["Event"] = "CompletedJob", ["Job"] = "Pizza"}) end)
+            task.wait(0.5) forceEquipPizza() task.wait(0.5) continue
+        end
+        if Enabled and player.Character and hrp and hrp.Parent and isCharacterAlive() then
+            triggerDelivery(prompt, hrp)
+            task.wait(0.3)
+            for i = 1, 3 do
+                if not Enabled or IsRestarting then break end
+                if not isCharacterAlive() then break end
+                completeJobAndForceEquipPizza()
+                task.wait(0.2)
+                local newMoney = getNewMoney()
+                if #newMoney > 0 then
+                    for _, money in pairs(newMoney) do collectMoney(money) end
+                    break
+                end
+            end
+            if Enabled and not IsRestarting and isCharacterAlive() then
+                startJob()
+                forceEquipPizza()
+            end
+            collectAllNewMoney()
+            updateEarnedMoney()
+            task.wait(0.3)
+        end
+        IsBusy = false
+        task.wait(0.1)
+    end
+end
+
+local function startFarm()
+    if not Enabled then return end
+    goUnderground()
+    setupSkiMask()
+    farm()
+end
+
+--// ==================== GUI ====================
+local gui = Instance.new("ScreenGui")
+gui.Name = "PIZZA_FARM_GUI"
+gui.ResetOnSpawn = false
+gui.Parent = PlayerGui
+
+local frame = Instance.new("Frame")
+frame.Name = "MainFrame"
+frame.Size = UDim2.new(0, 230, 0, 170)
+frame.Position = UDim2.new(0.5, -115, 0, 50)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+frame.BorderSizePixel = 0
+frame.BackgroundTransparency = 0.15
+frame.Active = true
+frame.Parent = gui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(255, 100, 0)
+stroke.Thickness = 2
+stroke.Transparency = 0.5
+stroke.Parent = frame
+
+local button = Instance.new("TextButton")
+button.Name = "StartStopButton"
+button.Size = UDim2.new(0.7, 0, 0, 34)
+button.Position = UDim2.new(0.15, 0, 0, 10)
+button.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+button.BackgroundTransparency = 0.3
+button.Font = Enum.Font.GothamBold
+button.TextColor3 = Color3.new(1, 1, 1)
+button.TextSize = 16
+button.Text = "▶ START"
+button.Parent = frame
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+
+local totalMoneyLabel = Instance.new("TextLabel")
+totalMoneyLabel.Size = UDim2.new(0.48, 0, 0, 22)
+totalMoneyLabel.Position = UDim2.new(0.03, 0, 0, 50)
+totalMoneyLabel.BackgroundTransparency = 1
+totalMoneyLabel.Font = Enum.Font.GothamBold
+totalMoneyLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+totalMoneyLabel.TextSize = 18
+totalMoneyLabel.Text = "💎 0"
+totalMoneyLabel.TextXAlignment = Enum.TextXAlignment.Left
+totalMoneyLabel.Parent = frame
+
+local incomeLabel = Instance.new("TextLabel")
+incomeLabel.Size = UDim2.new(0.48, 0, 0, 22)
+incomeLabel.Position = UDim2.new(0.50, 0, 0, 50)
+incomeLabel.BackgroundTransparency = 1
+incomeLabel.Font = Enum.Font.GothamBold
+incomeLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+incomeLabel.TextSize = 18
+incomeLabel.Text = "💰 0"
+incomeLabel.TextXAlignment = Enum.TextXAlignment.Left
+incomeLabel.Parent = frame
+
+local timerLabel = Instance.new("TextLabel")
+timerLabel.Size = UDim2.new(1, 0, 0, 22)
+timerLabel.Position = UDim2.new(0, 0, 0, 76)
+timerLabel.BackgroundTransparency = 1
+timerLabel.Font = Enum.Font.GothamBold
+timerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+timerLabel.TextSize = 16
+timerLabel.Text = "⏱ 00:00:00"
+timerLabel.Parent = frame
+
+local limitLabel = Instance.new("TextLabel")
+limitLabel.Name = "LimitLabel"
+limitLabel.Size = UDim2.new(0.58, 0, 0, 20)
+limitLabel.Position = UDim2.new(0.03, 0, 0, 102)
+limitLabel.BackgroundTransparency = 1
+limitLabel.Font = Enum.Font.GothamBold
+limitLabel.TextColor3 = Color3.fromRGB(255, 150, 0)
+limitLabel.TextSize = 14
+limitLabel.Text = "Hạn mức: OFF"
+limitLabel.TextXAlignment = Enum.TextXAlignment.Left
+limitLabel.Parent = frame
+
+local remainingLabel = Instance.new("TextLabel")
+remainingLabel.Size = UDim2.new(0.58, 0, 0, 18)
+remainingLabel.Position = UDim2.new(0.03, 0, 0, 122)
+remainingLabel.BackgroundTransparency = 1
+remainingLabel.Font = Enum.Font.GothamBold
+remainingLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+remainingLabel.TextSize = 14
+remainingLabel.Text = ""
+remainingLabel.TextXAlignment = Enum.TextXAlignment.Left
+remainingLabel.Parent = frame
+
+local setLimitButton = Instance.new("TextButton")
+setLimitButton.Size = UDim2.new(0.22, 0, 0, 22)
+setLimitButton.Position = UDim2.new(0.63, 0, 0, 101)
+setLimitButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+setLimitButton.BackgroundTransparency = 0.3
+setLimitButton.Font = Enum.Font.GothamBold
+setLimitButton.TextColor3 = Color3.new(1, 1, 1)
+setLimitButton.TextSize = 11
+setLimitButton.Text = "Đặt mốc"
+setLimitButton.Parent = frame
+Instance.new("UICorner", setLimitButton).CornerRadius = UDim.new(0, 6)
+
+local limitToggle = Instance.new("TextButton")
+limitToggle.Name = "LimitToggle"
+limitToggle.Size = UDim2.new(0.12, 0, 0, 22)
+limitToggle.Position = UDim2.new(0.86, 0, 0, 101)
+limitToggle.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+limitToggle.BackgroundTransparency = 0.3
+limitToggle.Font = Enum.Font.GothamBold
+limitToggle.TextColor3 = Color3.new(1, 1, 1)
+limitToggle.TextSize = 11
+limitToggle.Text = "OFF"
+limitToggle.Parent = frame
+Instance.new("UICorner", limitToggle).CornerRadius = UDim.new(0, 6)
+
+--// ============ POPUP ============
+local popupFrame = Instance.new("Frame")
+popupFrame.Name = "LimitPopup"
+popupFrame.Size = UDim2.new(0, 200, 0, 120)
+popupFrame.Position = UDim2.new(0.5, -100, 0.5, -60)
+popupFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+popupFrame.BorderSizePixel = 0
+popupFrame.Visible = false
+popupFrame.Parent = gui
+
+Instance.new("UICorner", popupFrame).CornerRadius = UDim.new(0, 10)
+local popupStroke = Instance.new("UIStroke")
+popupStroke.Color = Color3.fromRGB(255, 150, 0)
+popupStroke.Thickness = 2
+popupStroke.Parent = popupFrame
+
+local popupTitle = Instance.new("TextLabel")
+popupTitle.Size = UDim2.new(1, 0, 0, 25)
+popupTitle.Position = UDim2.new(0, 0, 0, 8)
+popupTitle.BackgroundTransparency = 1
+popupTitle.Font = Enum.Font.GothamBold
+popupTitle.TextColor3 = Color3.new(1, 1, 1)
+popupTitle.TextSize = 14
+popupTitle.Text = "Nhập hạn mức tiền"
+popupTitle.Parent = popupFrame
+
+local inputBox = Instance.new("TextBox")
+inputBox.Size = UDim2.new(0.8, 0, 0, 30)
+inputBox.Position = UDim2.new(0.1, 0, 0, 40)
+inputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+inputBox.TextColor3 = Color3.new(1, 1, 1)
+inputBox.Font = Enum.Font.GothamBold
+inputBox.TextSize = 14
+inputBox.PlaceholderText = "0"
+inputBox.Text = ""
+inputBox.Parent = popupFrame
+Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 6)
+
+inputBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local raw = string.gsub(inputBox.Text, "%.", "")
+    raw = string.gsub(raw, "[^%d]", "")
+    if raw == "" then inputBox.Text = "" return end
+    local num = tonumber(raw)
+    if num then
+        local formatted = formatWithComma(num)
+        inputBox.Text = formatted
+        pcall(function() inputBox.CursorPosition = #formatted end)
+    end
+end)
+
+local confirmButton = Instance.new("TextButton")
+confirmButton.Size = UDim2.new(0.35, 0, 0, 28)
+confirmButton.Position = UDim2.new(0.1, 0, 0, 80)
+confirmButton.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+confirmButton.Font = Enum.Font.GothamBold
+confirmButton.TextColor3 = Color3.new(1, 1, 1)
+confirmButton.TextSize = 13
+confirmButton.Text = "Hoàn thành"
+confirmButton.Parent = popupFrame
+Instance.new("UICorner", confirmButton).CornerRadius = UDim.new(0, 6)
+
+local cancelButton = Instance.new("TextButton")
+cancelButton.Size = UDim2.new(0.35, 0, 0, 28)
+cancelButton.Position = UDim2.new(0.55, 0, 0, 80)
+cancelButton.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+cancelButton.Font = Enum.Font.GothamBold
+cancelButton.TextColor3 = Color3.new(1, 1, 1)
+cancelButton.TextSize = 13
+cancelButton.Text = "Hủy"
+cancelButton.Parent = popupFrame
+Instance.new("UICorner", cancelButton).CornerRadius = UDim.new(0, 6)
+
+confirmButton.MouseButton1Click:Connect(function()
+    local raw = string.gsub(inputBox.Text, "%.", "")
+    local amount = tonumber(raw)
+    if amount and amount > 0 then
+        MoneyLimit = amount
+        limitLabel.Text = "Hạn mức: " .. formatWithComma(MoneyLimit)
+        if LimitEnabled and Enabled then
+            local remaining = MoneyLimit - TotalEarned
+            if remaining < 0 then remaining = 0 end
+            if remaining > 0 then remainingLabel.Text = "Còn thiếu: " .. formatWithComma(remaining) end
+        end
+    end
+    popupFrame.Visible = false
+end)
+
+cancelButton.MouseButton1Click:Connect(function() popupFrame.Visible = false end)
+
+--// ============ UPDATE DISPLAY ============
+local function updateRemainingDisplay()
+    if not LimitEnabled or MoneyLimit <= 0 then remainingLabel.Text = "" return end
+    local remaining = MoneyLimit - TotalEarned
+    if remaining < 0 then remaining = 0 end
+    if remaining > 0 then remainingLabel.Text = "Còn thiếu: " .. formatWithComma(remaining)
+    else remainingLabel.Text = "✅ Đã đạt hạn mức!" end
+end
+
+task.spawn(function()
+    while true do
+        if Enabled then timerLabel.Text = "⏱ " .. formatTime(TotalTime + (os.time() - StartTime))
+        else timerLabel.Text = "⏱ " .. formatTime(TotalTime) end
+        totalMoneyLabel.Text = "💎 " .. formatMoney(getBaseMoney())
+        incomeLabel.Text = "💰 " .. formatMoney(TotalEarned)
+        updateRemainingDisplay()
+        task.wait(0.1)
+    end
+end)
+
+--// ============ BUTTON EVENTS ============
+setLimitButton.MouseButton1Click:Connect(function()
+    popupFrame.Visible = true
+    inputBox.Text = ""
+    task.wait(0.05)
+    inputBox:CaptureFocus()
+end)
+
+limitToggle.MouseButton1Click:Connect(function()
+    LimitEnabled = not LimitEnabled
+    if LimitEnabled then
+        limitToggle.Text = "ON"
+        limitToggle.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+        if MoneyLimit > 0 then
+            local remaining = MoneyLimit - TotalEarned
+            if remaining < 0 then remaining = 0 end
+            limitLabel.Text = "Hạn mức: " .. formatWithComma(MoneyLimit) .. " ✓"
+            if remaining > 0 then remainingLabel.Text = "Còn thiếu: " .. formatWithComma(remaining)
+            else remainingLabel.Text = "✅ Đã đạt hạn mức!" end
+        else
+            limitLabel.Text = "Hạn mức: ON (chưa đặt)"
+            remainingLabel.Text = "⚠️ Chưa đặt hạn mức"
+        end
+    else
+        limitToggle.Text = "OFF"
+        limitToggle.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+        remainingLabel.Text = ""
+        if MoneyLimit > 0 then limitLabel.Text = "Hạn mức: " .. formatWithComma(MoneyLimit)
+        else limitLabel.Text = "Hạn mức: OFF" end
+    end
+end)
+
+button.MouseButton1Click:Connect(function()
+    if Enabled then
+        Enabled = false
+        button.Text = "▶ START"
+        button.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+        stroke.Color = Color3.fromRGB(255, 100, 0)
+        IsBusy = false
+        IsRestarting = false
+        TotalTime = TotalTime + (os.time() - StartTime)
+        StartTime = 0
+        local char = player.Character
+        if char then
+            disableNoclip(char)
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hum and hrp then disableFreefall(hum, hrp) end
+        end
+    else
+        Enabled = true
+        IsKicked = false
+        button.Text = "⏸ STOP"
+        button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        stroke.Color = Color3.fromRGB(0, 255, 100)
+        CollectedMoneyList = {}
+        UndergroundY = -HEAD_OFFSET
+        IsBusy = false
+        isEquipping = false
+        IsRestarting = false
+        MaskReady = false
+        resetMoneyCounter()
+        StartTime = os.time()
+        task.spawn(startFarm)
+    end
+end)
+
+--// ============ DRAG GUI ============
+local dragging, dragInput, dragStart, startPos
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
