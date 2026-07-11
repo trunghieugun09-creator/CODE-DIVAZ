@@ -1,0 +1,150 @@
+--code số 13: Kết hợp code 09 + code 10: Dịch Spawn đến toạ độ + Auto fix hồi sinh đúng chỗ
+local toaDoSpawn = Vector3.new(563.2, 3.9, -20.8)
+local player = game.Players.LocalPlayer
+
+local function dichSpawn()
+    local count = 0
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.ClassName == "SpawnLocation" then
+            pcall(function()
+                obj.CFrame = CFrame.new(toaDoSpawn)
+                obj.Duration = 0
+            end)
+            count = count + 1
+        end
+    end
+    return count
+end
+
+dichSpawn()
+
+player.CharacterAdded:Connect(function(char)
+    task.wait(0.1)
+    local hrp = char:WaitForChild("HumanoidRootPart", 5)
+    if hrp then
+        hrp.CFrame = CFrame.new(toaDoSpawn)
+    end
+    dichSpawn()
+end)
+
+while task.wait(0.5) do
+    dichSpawn()
+end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "SpawnFullFix"
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local f = Instance.new("Frame", gui)
+f.Name = "Main"
+f.BackgroundColor3 = Color3.fromRGB(16,16,26)
+f.Position = UDim2.new(0.5,-185,0.5,-100)
+f.Size = UDim2.new(0,370,0,200)
+f.Active = true
+f.Draggable = true
+Instance.new("UICorner",f).CornerRadius = UDim.new(0,14)
+Instance.new("UIGradient",f).Color = ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(20,20,36)),ColorSequenceKeypoint.new(1,Color3.fromRGB(12,12,22))})
+
+local top = Instance.new("Frame",f)
+top.BackgroundColor3 = Color3.fromRGB(26,26,40)
+top.Size = UDim2.new(1,0,0,44)
+Instance.new("UICorner",top).CornerRadius = UDim.new(0,14)
+
+local title = Instance.new("TextLabel",top)
+title.BackgroundTransparency = 1
+title.Position = UDim2.new(0,15,0,0)
+title.Size = UDim2.new(0,250,1,0)
+title.Font = Enum.Font.GothamBold
+title.Text = "SPAWN CỐ ĐỊNH + AUTO FIX"
+title.TextColor3 = Color3.new(1,1,1)
+title.TextSize = 13
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+local minBtn = Instance.new("TextButton",top)
+minBtn.BackgroundColor3 = Color3.fromRGB(255,160,10)
+minBtn.Position = UDim2.new(1,-74,0.5,-12)
+minBtn.Size = UDim2.new(0,26,0,24)
+minBtn.Font = Enum.Font.GothamBold
+minBtn.Text = "─"
+minBtn.TextColor3 = Color3.new(0,0,0)
+minBtn.TextSize = 15
+Instance.new("UICorner",minBtn).CornerRadius = UDim.new(0,7)
+
+local closeBtn = Instance.new("TextButton",top)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255,40,40)
+closeBtn.Position = UDim2.new(1,-40,0.5,-12)
+closeBtn.Size = UDim2.new(0,26,0,24)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.new(1,1,1)
+closeBtn.TextSize = 15
+Instance.new("UICorner",closeBtn).CornerRadius = UDim.new(0,7)
+
+local status = Instance.new("TextLabel",f)
+status.BackgroundTransparency = 1
+status.Position = UDim2.new(0,18,0,56)
+status.Size = UDim2.new(1,-36,0,30)
+status.Font = Enum.Font.Gotham
+status.Text = "Toạ độ: 563.2, 3.9, -20.8 | Auto fix khi chết"
+status.TextColor3 = Color3.fromRGB(160,160,180)
+status.TextSize = 11
+status.TextXAlignment = Enum.TextXAlignment.Left
+
+local moveBtn = Instance.new("TextButton",f)
+moveBtn.BackgroundColor3 = Color3.fromRGB(50,140,60)
+moveBtn.Position = UDim2.new(0,20,0,100)
+moveBtn.Size = UDim2.new(0,210,0,46)
+moveBtn.Font = Enum.Font.GothamBold
+moveBtn.Text = "DỊCH SPAWN NGAY"
+moveBtn.TextColor3 = Color3.new(1,1,1)
+moveBtn.TextSize = 13
+Instance.new("UICorner",moveBtn).CornerRadius = UDim.new(0,11)
+
+local copyBtn = Instance.new("TextButton",f)
+copyBtn.BackgroundColor3 = Color3.fromRGB(45,115,205)
+copyBtn.Position = UDim2.new(0,245,0,100)
+copyBtn.Size = UDim2.new(0,105,0,46)
+copyBtn.Font = Enum.Font.GothamBold
+copyBtn.Text = "COPY TOẠ ĐỘ"
+copyBtn.TextColor3 = Color3.new(1,1,1)
+copyBtn.TextSize = 11
+Instance.new("UICorner",copyBtn).CornerRadius = UDim.new(0,11)
+
+local thuNho = false
+
+moveBtn.MouseButton1Click:Connect(function()
+    local c = dichSpawn()
+    if c > 0 then
+        status.Text = "✅ Đã dịch "..c.." Spawn + auto fix khi chết!"
+    else
+        status.Text = "❌ Không tìm thấy SpawnLocation!"
+    end
+    task.wait(3)
+    status.Text = "Toạ độ: 563.2, 3.9, -20.8 | Auto fix khi chết"
+end)
+
+copyBtn.MouseButton1Click:Connect(function()
+    pcall(function() setclipboard("563.2, 3.9, -20.8") end)
+    status.Text = "✅ Đã copy toạ độ!"
+    task.wait(2)
+    status.Text = "Toạ độ: 563.2, 3.9, -20.8 | Auto fix khi chết"
+end)
+
+minBtn.MouseButton1Click:Connect(function()
+    thuNho = not thuNho
+    if thuNho then
+        f.Size = UDim2.new(0,370,0,44)
+        moveBtn.Visible = false
+        copyBtn.Visible = false
+        status.Visible = false
+    else
+        f.Size = UDim2.new(0,370,0,200)
+        moveBtn.Visible = true
+        copyBtn.Visible = true
+        status.Visible = true
+    end
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
