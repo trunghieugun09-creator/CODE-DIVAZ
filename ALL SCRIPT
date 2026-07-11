@@ -1,0 +1,118 @@
+--code so 57: GUI DA NANG - 5 NUT SCRIPT + ANTI AFK (DELTAX MOBILE)
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local nguoi_choi = Players.LocalPlayer
+local gui_nguoi_choi = nguoi_choi:FindFirstChild("PlayerGui") or nguoi_choi:WaitForChild("PlayerGui")
+
+pcall(function() if gui_nguoi_choi:FindFirstChild("A_GUI") then gui_nguoi_choi.A_GUI:Destroy() end end)
+
+-- ANTI AFK
+local afk_on = false
+local afk_thread = nil
+task.spawn(function()
+    while true do
+        if afk_on then
+            if math.random(1,2)==1 then
+                pcall(function() VirtualInputManager:SendTouchEvent(math.random(100,700), math.random(100,400), 0, true, game, 0) task.wait(0.015) VirtualInputManager:SendTouchEvent(100, 100, 0, false, game, 0) end)
+            else
+                pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game) task.wait(0.03) VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game) end)
+            end
+        end
+        task.wait(math.random(30, 90))
+    end
+end)
+
+-- CHAY SCRIPT 1 LAN DUY NHAT
+local da_chay = {}
+local function chay(url, ten)
+    if da_chay[ten] then return end
+    da_chay[ten] = true
+    task.spawn(function() pcall(function() loadstring(game:HttpGet(url))() end) end)
+end
+
+-- GUI
+local gui = Instance.new("ScreenGui") gui.Name = "A_GUI" gui.ResetOnSpawn = false gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling gui.Parent = gui_nguoi_choi
+
+local main = Instance.new("Frame", gui) main.Size = UDim2.new(0, 200, 0, 260) main.Position = UDim2.new(0, 20, 0.5, -130) main.BackgroundColor3 = Color3.fromRGB(20, 20, 20) main.BackgroundTransparency = 0.15 main.BorderSizePixel = 0 main.Active = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
+
+local top = Instance.new("Frame", main) top.Size = UDim2.new(1, 0, 0, 30) top.BackgroundColor3 = Color3.fromRGB(30, 30, 30) top.BorderSizePixel = 0
+Instance.new("UICorner", top).CornerRadius = UDim.new(0, 12)
+
+local title = Instance.new("TextLabel", top) title.Size = UDim2.new(0.6, 0, 1, 0) title.Position = UDim2.new(0.05, 0, 0, 0) title.Text = "MENU DA NANG" title.TextColor3 = Color3.new(1, 1, 1) title.Font = Enum.Font.GothamBold title.TextSize = 11 title.BackgroundTransparency = 1 title.TextXAlignment = Enum.TextXAlignment.Left
+
+local close = Instance.new("TextButton", top) close.Size = UDim2.new(0, 20, 0, 20) close.Position = UDim2.new(1, -26, 0, 5) close.Text = "x" close.TextColor3 = Color3.new(1, 1, 1) close.BackgroundColor3 = Color3.fromRGB(220, 50, 50) close.Font = Enum.Font.GothamBold close.TextSize = 10
+Instance.new("UICorner", close).CornerRadius = UDim.new(0, 4)
+
+local minBtn = Instance.new("TextButton", top) minBtn.Size = UDim2.new(0, 20, 0, 20) minBtn.Position = UDim2.new(1, -50, 0, 5) minBtn.Text = "-" minBtn.TextColor3 = Color3.new(1, 1, 1) minBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 30) minBtn.Font = Enum.Font.GothamBold minBtn.TextSize = 10
+Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 4)
+
+local body = Instance.new("Frame", main) body.Size = UDim2.new(1, 0, 1, -30) body.Position = UDim2.new(0, 0, 0, 30) body.BackgroundTransparency = 1
+
+local uiList = Instance.new("UIListLayout", body) uiList.Padding = UDim.new(0, 4) uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center uiList.SortOrder = Enum.SortOrder.LayoutOrder
+Instance.new("UIPadding", body).PaddingTop = UDim.new(0, 6)
+
+-- Tao nut
+local function taoNut(text, mau, callback)
+    local btn = Instance.new("TextButton", body)
+    btn.Size = UDim2.new(1, -16, 0, 32)
+    btn.BackgroundColor3 = mau
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10
+    btn.AutoButtonColor = false
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+local function taoToggle(text, mauOn, mauOff, callback)
+    local on = false
+    local btn = Instance.new("TextButton", body)
+    btn.Size = UDim2.new(1, -16, 0, 32)
+    btn.BackgroundColor3 = mauOff
+    btn.Text = text .. ": OFF"
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10
+    btn.AutoButtonColor = false
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    btn.MouseButton1Click:Connect(function()
+        on = not on
+        btn.Text = text .. (on and ": ON" or ": OFF")
+        btn.BackgroundColor3 = on and mauOn or mauOff
+        callback(on)
+    end)
+    return btn
+end
+
+taoNut("Farm Slay (Acc chu)", Color3.fromRGB(80, 60, 200), function()
+    chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20SLAY%20ACC%20CH%E1%BB%A6", "slay_chu")
+end)
+
+taoNut("Farm Slay (Acc clone)", Color3.fromRGB(80, 60, 200), function()
+    chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20SLAY%20ACC%20CLONE", "slay_clone")
+end)
+
+taoNut("Farm Pizza", Color3.fromRGB(200, 120, 0), function()
+    chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20PIZZA", "pizza")
+end)
+
+taoNut("Giam Vat The", Color3.fromRGB(0, 140, 140), function()
+    chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BEXPLORER%5D%20GI%E1%BA%A2M%20V%E1%BA%ACT%20TH%E1%BB%82%20MAP", "giam_vat_the")
+end)
+
+taoToggle("ANTI AFK", Color3.fromRGB(0, 180, 80), Color3.fromRGB(50, 50, 60), function(o) afk_on = o end)
+
+-- Su kien
+local content = body
+minBtn.MouseButton1Click:Connect(function() content.Visible = not content.Visible main.Size = content.Visible and UDim2.new(0, 200, 0, 260) or UDim2.new(0, 200, 0, 30) end)
+close.MouseButton1Click:Connect(function() afk_on = false gui:Destroy() end)
+
+-- Keo tha
+local drag, dragStart, startPos, dragInput = false, nil, nil, nil
+main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then drag = true dragStart = i.Position startPos = main.Position i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then drag = false end end) end end)
+main.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseMovement then dragInput = i end end)
+UIS.InputChanged:Connect(function(i) if i == dragInput and drag then local d = i.Position - dragStart main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y) end end)
