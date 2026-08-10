@@ -77,17 +77,17 @@ end
 local function onLimitReached()
     if IsKicked then return end
     IsKicked = true
-    
+
     local currentTotalMoney = getBaseMoney()
     local endTime = os.date("%H:%M:%S")
     local displayName = player.DisplayName
-    
+
     Enabled = false
     IsBusy = false
     IsRestarting = false
     TotalTime = TotalTime + (os.time() - StartTime)
     StartTime = 0
-    
+
     local frame = PlayerGui:FindFirstChild("PIZZA_FARM_GUI")
     if frame then
         local button = frame:FindFirstChild("StartStopButton")
@@ -104,16 +104,15 @@ local function onLimitReached()
             limitToggle.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
         end
     end
-    
-    pcall(function() 
-        Remote:FireServer({["Event"] = "Notification", ["Message"] = "✅ Hoàn thành hạn mức " .. formatWithComma(MoneyLimit) .. "!"}) 
+
+    pcall(function()
+        Remote:FireServer({["Event"] = "Notification", ["Message"] = "✅ Hoàn thành hạn mức " .. formatWithComma(MoneyLimit) .. "!"})
     end)
-    
-    -- Kick ngay với nội dung
+
     local kickMessage = displayName .. "|Tong tien: " .. formatWithComma(currentTotalMoney) .. "|Thu nhap: " .. formatWithComma(TotalEarned) .. "|End: " .. endTime
-    
+
     task.wait(0.3)
-    
+
     pcall(function()
         player:Kick(kickMessage)
     end)
@@ -334,28 +333,28 @@ local function flyToTarget(targetPos, hum, hrp)
     local waitStartTime = 0
     local failedAttempts = 0
     local maxFailedAttempts = 3
-    
+
     if not hum.PlatformStand then enableFreefall(hum) end
     if UndergroundY then
         hrp.CFrame = CFrame.new(hrp.Position.X, UndergroundY, hrp.Position.Z)
         hrp.Velocity = Vector3.zero
     end
-    
+
     while Enabled and hrp and hrp.Parent do
         local currentPos = hrp.Position
         local flatCurrent = Vector3.new(currentPos.X, 0, currentPos.Z)
         local flatTarget = Vector3.new(targetPos.X, 0, targetPos.Z)
         local dist = (flatCurrent - flatTarget).Magnitude
-        
+
         if dist <= 1.5 then hrp.Velocity = Vector3.zero return true end
-        
+
         if tick() - startTime > 5 and not isWaiting then
             isWaiting = true
             waitStartTime = tick()
             hrp.Velocity = Vector3.zero
             if hrp and UndergroundY then hrp.CFrame = CFrame.new(hrp.Position.X, UndergroundY, hrp.Position.Z) end
         end
-        
+
         if isWaiting then
             hrp.Velocity = Vector3.zero
             if hrp and UndergroundY then hrp.CFrame = CFrame.new(hrp.Position.X, UndergroundY, hrp.Position.Z) end
@@ -368,9 +367,9 @@ local function flyToTarget(targetPos, hum, hrp)
             task.wait()
             continue
         end
-        
+
         if tick() - startTime > 20 then hrp.Velocity = Vector3.zero return false end
-        
+
         if dist > 200 then
             hrp.CFrame = CFrame.new(targetPos.X, UndergroundY, targetPos.Z)
             hrp.Velocity = Vector3.zero
@@ -378,20 +377,20 @@ local function flyToTarget(targetPos, hum, hrp)
             task.wait(0.5)
             continue
         end
-        
+
         local direction = (flatTarget - flatCurrent).Unit
         hrp.Velocity = Vector3.new(direction.X * FLY_SPEED, 0, direction.Z * FLY_SPEED)
-        
+
         if math.abs(hrp.Position.Y - UndergroundY) > 0.5 then
             hrp.CFrame = CFrame.new(hrp.Position.X, UndergroundY, hrp.Position.Z)
             hrp.Velocity = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z)
         end
-        
+
         hum.AutoRotate = false
         if direction.Magnitude > 0.01 then
             hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(hrp.Position.X + direction.X, hrp.Position.Y, hrp.Position.Z + direction.Z))
         end
-        
+
         if (hrp.Position - lastPos).Magnitude < 0.5 then
             stuckTime = stuckTime + 0.1
             if stuckTime >= 2 then antiStuck(hrp) stuckTime = 0 end
@@ -401,7 +400,7 @@ local function flyToTarget(targetPos, hum, hrp)
         lastPos = hrp.Position
         task.wait()
     end
-    
+
     hrp.Velocity = Vector3.zero
     return false
 end
@@ -566,23 +565,20 @@ function farm()
         if Enabled and player.Character and hrp and hrp.Parent and isCharacterAlive() then
             triggerDelivery(prompt, hrp)
             task.wait(0.3)
-            for i = 1, 3 do
-                if not Enabled or IsRestarting then break end
-                if not isCharacterAlive() then break end
+            -- Gửi CompletedJob 1 lần, delay 0.3s
+            if Enabled and not IsRestarting and isCharacterAlive() then
                 completeJobAndForceEquipPizza()
-                task.wait(0.2)
-                local newMoney = getNewMoney()
-                if #newMoney > 0 then
-                    for _, money in pairs(newMoney) do collectMoney(money) end
-                    break
-                end
+                task.wait(0.3)
             end
+            -- Thu tiền + cập nhật TRƯỚC khi start job mới
+            collectAllNewMoney()
+            updateEarnedMoney()
+            task.wait(0.2)
+            -- Start job mới SAU KHI đã có tiền
             if Enabled and not IsRestarting and isCharacterAlive() then
                 startJob()
                 forceEquipPizza()
             end
-            collectAllNewMoney()
-            updateEarnedMoney()
             task.wait(0.3)
         end
         IsBusy = false
