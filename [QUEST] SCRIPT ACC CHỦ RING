@@ -1,4 +1,4 @@
---code số 60: ACC CHỦ - AUTO DUEL 1VS1 - Gửi tín hiệu ẩn + Gửi remote + Auto combat + Ring cố định
+--code số 62: AUTO DUEL 1VS1 - CHỦ/CLONE - Chọn vai trò khi chạy
 local player = game.Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 local UIS = game:GetService("UserInputService")
@@ -6,13 +6,20 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
+pcall(function() if PlayerGui:FindFirstChild("DUEL_MAIN_GUI") then PlayerGui:FindFirstChild("DUEL_MAIN_GUI"):Destroy() end end)
 pcall(function() if PlayerGui:FindFirstChild("DUEL_CHU_GUI") then PlayerGui:FindFirstChild("DUEL_CHU_GUI"):Destroy() end end)
+pcall(function() if PlayerGui:FindFirstChild("DUEL_CLONE_GUI") then PlayerGui:FindFirstChild("DUEL_CLONE_GUI"):Destroy() end end)
 
 local TOADO_CHUNG = Vector3.new(563.2, 3.9, -20.8)
 local Remote = game:GetService("ReplicatedStorage"):WaitForChild("DuelRemote")
+local TIN_HIEU_Y = 999.99
+local VIPHA_SPAWN = 5
 
+-- Biến chung
+local vaiTro = nil -- "chu" hoac "clone"
 local dangHoatDong = false
 local mucTieu = nil
+local accChu = nil
 local dangDanh = false
 local tocDoChay = 20
 local tamDanh = 4
@@ -20,10 +27,26 @@ local tamLui = 3
 local nguongMau = 3
 local dangDiChuyen = false
 local tacVuDiChuyen = nil
-local TIN_HIEU_Y = 999.99 -- Tín hiệu ẩn: set HRP.Y lên 999.99 để clone biết
+local nhanDuocTinHieu = false
 
--- ==================== RING + SPAWN CỐ ĐỊNH ====================
+-- ==================== RING CỐ ĐỊNH (CHỈ KHI VÀO RING) ====================
+local function dangORing()
+    local char = player.Character
+    if not char then return false end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.Name == "Spawn1" or obj.Name == "Spawn2" then
+            if obj:IsA("BasePart") or obj:IsA("MeshPart") then
+                if (hrp.Position - obj.Position).Magnitude < VIPHA_SPAWN then return true end
+            end
+        end
+    end
+    return false
+end
+
 local function dichSpawn()
+    if not dangORing() then return end
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj.ClassName == "SpawnLocation" or obj.Name == "Spawn1" or obj.Name == "Spawn2" then
             if obj.ClassName == "SpawnLocation" then obj.Duration = 0 end
@@ -36,6 +59,7 @@ end
 RunService.RenderStepped:Connect(dichSpawn)
 
 RunService.RenderStepped:Connect(function()
+    if not dangORing() then return end
     local char = player.Character
     if char then
         local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -46,12 +70,16 @@ RunService.RenderStepped:Connect(function()
 end)
 
 player.CharacterAdded:Connect(function(char)
-    task.wait(0.1) local hrp = char:WaitForChild("HumanoidRootPart",5)
-    if hrp then hrp.CFrame = CFrame.new(TOADO_CHUNG) end
+    task.wait(0.2)
+    if dangORing() then
+        local hrp = char:WaitForChild("HumanoidRootPart",5)
+        if hrp then hrp.CFrame = CFrame.new(TOADO_CHUNG) end
+    end
     dichSpawn()
 end)
 
 workspace.DescendantAdded:Connect(function(obj)
+    if not dangORing() then return end
     if obj.ClassName == "SpawnLocation" or obj.Name == "Spawn1" or obj.Name == "Spawn2" then
         if obj.ClassName == "SpawnLocation" then obj.Duration = 0 end
         if obj:IsA("BasePart") or obj:IsA("MeshPart") or obj.ClassName == "SpawnLocation" then
@@ -60,7 +88,7 @@ workspace.DescendantAdded:Connect(function(obj)
     end
 end)
 
--- ==================== GỬI TÍN HIỆU ẨN ====================
+-- ==================== TÍN HIỆU ẨN ====================
 local function guiTinHieuAn()
     local char = player.Character
     if char then
@@ -73,7 +101,23 @@ local function guiTinHieuAn()
     end
 end
 
--- ==================== COMBAT ====================
+-- Theo dõi tín hiệu ẩn từ chủ (dành cho clone)
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if vaiTro ~= "clone" then nhanDuocTinHieu = false continue end
+        if not dangHoatDong then nhanDuocTinHieu = false continue end
+        if not accChu then continue end
+        local tc = accChu.Character
+        if not tc then continue end
+        local hrp = tc:FindFirstChild("HumanoidRootPart")
+        if hrp and math.abs(hrp.Position.Y - TIN_HIEU_Y) < 0.5 then
+            nhanDuocTinHieu = true
+        end
+    end
+end)
+
+-- ==================== COMBAT (CHỈ DÀNH CHO CHỦ) ====================
 local function bamPhim(key)
     pcall(function() VirtualInputManager:SendKeyEvent(true,key,false,game) task.wait(0.01) VirtualInputManager:SendKeyEvent(false,key,false,game) end)
 end
@@ -101,9 +145,10 @@ local function diToiMucTieu(dich)
     tacVuDiChuyen=task.spawn(function()
         local c,h,r=player.Character,nil,nil if c then h=c:FindFirstChild("Humanoid") r=c:FindFirstChild("HumanoidRootPart") end
         if not h or not r then dangDiChuyen=false return end h.WalkSpeed=tocDoChay
+        local mt = vaiTro=="chu" and mucTieu or accChu
         while dangHoatDong and dangDiChuyen and r and r.Parent and dich and dich.Parent do
-            if not mucTieu or not mucTieu.Character then break end
-            local d2=mucTieu.Character:FindFirstChild("HumanoidRootPart") if not d2 then break end
+            if not mt or not mt.Character then break end
+            local d2=mt.Character:FindFirstChild("HumanoidRootPart") if not d2 then break end
             if (r.Position-d2.Position).Magnitude<=tamDanh then break end
             r.CFrame=CFrame.lookAt(r.Position,Vector3.new(d2.Position.X,r.Position.Y,d2.Position.Z)) h:MoveTo(d2.Position) task.wait(0.05)
         end
@@ -125,8 +170,9 @@ local function luiRa(dich)
 end
 local function vongLapCombat()
     while dangHoatDong do task.wait(0.05)
-        if not mucTieu then continue end
-        local tc=mucTieu.Character if not tc then continue end
+        local mt = vaiTro=="chu" and mucTieu or accChu
+        if not mt then continue end
+        local tc=mt.Character if not tc then continue end
         local dich=tc:FindFirstChild("HumanoidRootPart") local mauDich=tc:FindFirstChild("Humanoid")
         if not dich or not mauDich or mauDich.Health<=0 then continue end
         local c,_,r=player.Character,nil,nil if c then r=c:FindFirstChild("HumanoidRootPart") end
@@ -144,16 +190,22 @@ local function vongLapCombat()
     end
 end
 
--- ==================== AUTO DUEL LOOP ====================
-local function guiRemoteDuel()
+-- ==================== REMOTE ====================
+local function guiChallenge()
     if not mucTieu then return end
     local args={[1]={["TargetUserId"]=mucTieu.UserId,["Event"]="DuelRequest",["Action"]="Challenge"}}
     pcall(function() Remote:FireServer(unpack(args)) end)
 end
+local function guiAccept()
+    if not accChu then return end
+    local args={[1]={["ChallengerUserId"]=accChu.UserId,["Event"]="DuelRequest",["Action"]="Accept"}}
+    pcall(function() Remote:FireServer(unpack(args)) end)
+end
 
+-- ==================== AUTO LOOP CHO CHỦ ====================
 local function theoDoiMauVaLap()
     task.spawn(function()
-        while dangHoatDong do
+        while dangHoatDong and vaiTro=="chu" do
             if not mucTieu then task.wait(1) continue end
             local tc=mucTieu.Character
             if not tc then task.wait(1) continue end
@@ -161,9 +213,9 @@ local function theoDoiMauVaLap()
             if mauDich and mauDich.Health<=0 then
                 dangDanh=false dungDiChuyen()
                 task.wait(3)
-                guiTinHieuAn() -- Gửi tín hiệu ẩn cho clone biết sắp gửi remote
+                guiTinHieuAn()
                 task.wait(0.2)
-                guiRemoteDuel()
+                guiChallenge()
                 task.wait(4)
             end
             task.wait(0.3)
@@ -171,25 +223,43 @@ local function theoDoiMauVaLap()
     end)
 end
 
-local function batDauDuel()
-    if not mucTieu then return end
-    guiTinHieuAn()
-    task.wait(0.2)
-    guiRemoteDuel()
-    task.wait(4)
-    task.spawn(vongLapCombat)
-    theoDoiMauVaLap()
-end
+-- ==================== AUTO LOOP CHO CLONE ====================
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        if vaiTro~="clone" then continue end
+        if not dangHoatDong then continue end
+        if nhanDuocTinHieu then
+            nhanDuocTinHieu=false
+            task.wait(0.3)
+            guiAccept()
+        end
+    end
+end)
 
--- ==================== GUI ====================
-local gui=Instance.new("ScreenGui") gui.Name="DUEL_CHU_GUI" gui.ResetOnSpawn=false gui.Parent=PlayerGui
-local khungChinh=Instance.new("Frame") khungChinh.Name="MainFrame" khungChinh.Size=UDim2.new(0,240,0,320) khungChinh.Position=UDim2.new(0.5,-120,0.5,-160) khungChinh.BackgroundColor3=Color3.fromRGB(10,10,15) khungChinh.BorderSizePixel=0 khungChinh.Active=true khungChinh.Parent=gui
+-- ==================== GUI CHỌN VAI TRÒ ====================
+local guiChon = Instance.new("ScreenGui") guiChon.Name="DUEL_MAIN_GUI" guiChon.ResetOnSpawn=false guiChon.Parent=PlayerGui
+local khungChon = Instance.new("Frame") khungChon.Size=UDim2.new(0,240,0,160) khungChon.Position=UDim2.new(0.5,-120,0.5,-80) khungChon.BackgroundColor3=Color3.fromRGB(10,10,15) khungChon.BorderSizePixel=0 khungChon.Active=true khungChon.Parent=guiChon
+Instance.new("UICorner",khungChon).CornerRadius=UDim.new(0,14)
+local vienChon=Instance.new("UIStroke") vienChon.Color=Color3.fromRGB(255,255,255) vienChon.Thickness=2 vienChon.Transparency=0.3 vienChon.Parent=khungChon
+
+local tieuDeChon=Instance.new("TextLabel") tieuDeChon.Size=UDim2.new(1,0,0,36) tieuDeChon.Text="CHỌN VAI TRÒ" tieuDeChon.TextColor3=Color3.new(1,1,1) tieuDeChon.Font=Enum.Font.GothamBold tieuDeChon.TextSize=15 tieuDeChon.BackgroundTransparency=1 tieuDeChon.Parent=khungChon
+
+local nutChu=Instance.new("TextButton") nutChu.Size=UDim2.new(0.7,0,0,40) nutChu.Position=UDim2.new(0.15,0,0,50) nutChu.BackgroundColor3=Color3.fromRGB(0,150,80) nutChu.Text="👑 CHỦ (GỬI DUEL)" nutChu.TextColor3=Color3.new(1,1,1) nutChu.Font=Enum.Font.GothamBold nutChu.TextSize=13 nutChu.Parent=khungChon
+Instance.new("UICorner",nutChu).CornerRadius=UDim.new(0,8)
+
+local nutClone=Instance.new("TextButton") nutClone.Size=UDim2.new(0.7,0,0,40) nutClone.Position=UDim2.new(0.15,0,0,100) nutClone.BackgroundColor3=Color3.fromRGB(0,100,200) nutClone.Text="🤖 CLONE (ACCEPT)" nutClone.TextColor3=Color3.new(1,1,1) nutClone.Font=Enum.Font.GothamBold nutClone.TextSize=13 nutClone.Parent=khungChon
+Instance.new("UICorner",nutClone).CornerRadius=UDim.new(0,8)
+
+-- ==================== GUI CHÍNH (HIỆN SAU KHI CHỌN) ====================
+local guiChinh = Instance.new("ScreenGui") guiChinh.Name="DUEL_CHU_GUI" guiChinh.ResetOnSpawn=false guiChinh.Visible=false guiChinh.Parent=PlayerGui
+local khungChinh=Instance.new("Frame") khungChinh.Name="MainFrame" khungChinh.Size=UDim2.new(0,240,0,320) khungChinh.Position=UDim2.new(0.5,-120,0.5,-160) khungChinh.BackgroundColor3=Color3.fromRGB(10,10,15) khungChinh.BorderSizePixel=0 khungChinh.Active=true khungChinh.Parent=guiChinh
 Instance.new("UICorner",khungChinh).CornerRadius=UDim.new(0,14)
 local vien=Instance.new("UIStroke") vien.Color=Color3.fromRGB(255,255,255) vien.Thickness=2 vien.Transparency=0.3 vien.Parent=khungChinh
 
 local thanhTren=Instance.new("Frame") thanhTren.Size=UDim2.new(1,0,0,36) thanhTren.BackgroundColor3=Color3.fromRGB(20,20,30) thanhTren.BorderSizePixel=0 thanhTren.Parent=khungChinh
 Instance.new("UICorner",thanhTren).CornerRadius=UDim.new(0,14)
-local tieuDe=Instance.new("TextLabel") tieuDe.Size=UDim2.new(0.5,0,1,0) tieuDe.Position=UDim2.new(0,14,0,0) tieuDe.Text="CHỦ - DUEL 1VS1" tieuDe.TextColor3=Color3.new(1,1,1) tieuDe.Font=Enum.Font.GothamBold tieuDe.TextSize=13 tieuDe.BackgroundTransparency=1 tieuDe.TextXAlignment=Enum.TextXAlignment.Left tieuDe.Parent=thanhTren
+local tieuDe=Instance.new("TextLabel") tieuDe.Size=UDim2.new(0.5,0,1,0) tieuDe.Position=UDim2.new(0,14,0,0) tieuDe.Text="DUEL 1VS1" tieuDe.TextColor3=Color3.new(1,1,1) tieuDe.Font=Enum.Font.GothamBold tieuDe.TextSize=13 tieuDe.BackgroundTransparency=1 tieuDe.TextXAlignment=Enum.TextXAlignment.Left tieuDe.Parent=thanhTren
 local nutThuNho=Instance.new("TextButton") nutThuNho.Size=UDim2.new(0,24,0,24) nutThuNho.Position=UDim2.new(1,-56,0.5,-12) nutThuNho.Text="—" nutThuNho.TextColor3=Color3.new(1,1,1) nutThuNho.BackgroundColor3=Color3.fromRGB(100,100,120) nutThuNho.Font=Enum.Font.GothamBold nutThuNho.TextSize=14 nutThuNho.Parent=thanhTren
 Instance.new("UICorner",nutThuNho).CornerRadius=UDim.new(0,6)
 local nutDong=Instance.new("TextButton") nutDong.Size=UDim2.new(0,24,0,24) nutDong.Position=UDim2.new(1,-26,0.5,-12) nutDong.Text="✕" nutDong.TextColor3=Color3.new(1,1,1) nutDong.BackgroundColor3=Color3.fromRGB(220,50,50) nutDong.Font=Enum.Font.GothamBold nutDong.TextSize=14 nutDong.Parent=thanhTren
@@ -205,19 +275,21 @@ local nutStart=Instance.new("TextButton") nutStart.Size=UDim2.new(0.7,0,0,34) nu
 Instance.new("UICorner",nutStart).CornerRadius=UDim.new(0,8)
 
 -- POPUP XÁC NHẬN ĐÓNG
-local popupDong=Instance.new("Frame") popupDong.Size=UDim2.new(0,200,0,90) popupDong.Position=UDim2.new(0.5,-100,0.5,-45) popupDong.BackgroundColor3=Color3.fromRGB(25,25,35) popupDong.BorderSizePixel=0 popupDong.Visible=false popupDong.Parent=gui
+local popupDong=Instance.new("Frame") popupDong.Size=UDim2.new(0,200,0,90) popupDong.Position=UDim2.new(0.5,-100,0.5,-45) popupDong.BackgroundColor3=Color3.fromRGB(25,25,35) popupDong.BorderSizePixel=0 popupDong.Visible=false popupDong.Parent=guiChinh
 Instance.new("UICorner",popupDong).CornerRadius=UDim.new(0,10)
-local vienPopup=Instance.new("UIStroke") vienPopup.Color=Color3.fromRGB(255,255,255) vienPopup.Thickness=1.5 vienPopup.Parent=popupDong
+Instance.new("UIStroke").Color=Color3.fromRGB(255,255,255) Instance.new("UIStroke").Thickness=1.5 Instance.new("UIStroke").Parent=popupDong
 local textPopup=Instance.new("TextLabel") textPopup.Size=UDim2.new(1,0,0,30) textPopup.Position=UDim2.new(0,0,0,8) textPopup.Text="Xác nhận đóng?" textPopup.TextColor3=Color3.new(1,1,1) textPopup.Font=Enum.Font.GothamBold textPopup.TextSize=13 textPopup.BackgroundTransparency=1 textPopup.Parent=popupDong
 local nutCo=Instance.new("TextButton") nutCo.Size=UDim2.new(0.35,0,0,28) nutCo.Position=UDim2.new(0.1,0,0,50) nutCo.BackgroundColor3=Color3.fromRGB(220,50,50) nutCo.Text="Đóng" nutCo.TextColor3=Color3.new(1,1,1) nutCo.Font=Enum.Font.GothamBold nutCo.TextSize=12 nutCo.Parent=popupDong
 Instance.new("UICorner",nutCo).CornerRadius=UDim.new(0,6)
 local nutKhong=Instance.new("TextButton") nutKhong.Size=UDim2.new(0.35,0,0,28) nutKhong.Position=UDim2.new(0.55,0,0,50) nutKhong.BackgroundColor3=Color3.fromRGB(80,80,100) nutKhong.Text="Hủy" nutKhong.TextColor3=Color3.new(1,1,1) nutKhong.Font=Enum.Font.GothamBold nutKhong.TextSize=12 nutKhong.Parent=popupDong
 Instance.new("UICorner",nutKhong).CornerRadius=UDim.new(0,6)
 
+-- ==================== CẬP NHẬT DANH SÁCH ====================
 local function capNhatDanhSach()
     for _,v in pairs(khungCuon:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
     for _,pl in pairs(Players:GetPlayers()) do if pl~=player then
-        local dong=Instance.new("Frame") dong.Size=UDim2.new(1,-6,0,44) dong.BackgroundColor3=(mucTieu==pl) and Color3.fromRGB(100,20,140) or Color3.fromRGB(30,30,40) dong.BorderSizePixel=0 dong.Parent=khungCuon
+        local selected = (vaiTro=="chu" and mucTieu==pl) or (vaiTro=="clone" and accChu==pl)
+        local dong=Instance.new("Frame") dong.Size=UDim2.new(1,-6,0,44) dong.BackgroundColor3=selected and Color3.fromRGB(100,20,140) or Color3.fromRGB(30,30,40) dong.BorderSizePixel=0 dong.Parent=khungCuon
         Instance.new("UICorner",dong).CornerRadius=UDim.new(0,8)
         local avt=Instance.new("ImageLabel") avt.Size=UDim2.new(0,34,0,34) avt.Position=UDim2.new(0,5,0.5,-17) avt.BackgroundTransparency=1 avt.Parent=dong
         Instance.new("UICorner",avt).CornerRadius=UDim.new(0,17)
@@ -226,51 +298,80 @@ local function capNhatDanhSach()
         local uid=Instance.new("TextLabel") uid.Size=UDim2.new(0,120,0,14) uid.Position=UDim2.new(0,46,0,24) uid.Text="UID: "..pl.UserId uid.TextColor3=Color3.fromRGB(150,150,170) uid.Font=Enum.Font.Gotham uid.TextSize=9 uid.BackgroundTransparency=1 uid.TextXAlignment=Enum.TextXAlignment.Left uid.Parent=dong
         local ref=pl
         dong.InputBegan:Connect(function(input)
-            if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then mucTieu=ref capNhatDanhSach() end
+            if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then
+                if vaiTro=="chu" then mucTieu=ref else accChu=ref end
+                capNhatDanhSach()
+            end
         end)
     end end
     khungCuon.CanvasSize=UDim2.new(0,0,0,danhSach.AbsoluteContentSize.Y+5)
 end
 Players.PlayerAdded:Connect(capNhatDanhSach)
-Players.PlayerRemoving:Connect(function(pl) if mucTieu==pl then mucTieu=nil end capNhatDanhSach() end)
-capNhatDanhSach()
+Players.PlayerRemoving:Connect(function(pl) if mucTieu==pl then mucTieu=nil end if accChu==pl then accChu=nil end capNhatDanhSach() end)
 
+-- ==================== SỰ KIỆN NÚT ====================
 nutThuNho.MouseButton1Click:Connect(function() thanKhung.Visible=not thanKhung.Visible khungChinh.Size=thanKhung.Visible and UDim2.new(0,240,0,320) or UDim2.new(0,240,0,36) end)
 nutDong.MouseButton1Click:Connect(function() popupDong.Visible=true end)
-nutCo.MouseButton1Click:Connect(function() dangHoatDong=false dangDanh=false dungDiChuyen() gui:Destroy() end)
+nutCo.MouseButton1Click:Connect(function() dangHoatDong=false dangDanh=false dungDiChuyen() guiChinh:Destroy() guiChon:Destroy() end)
 nutKhong.MouseButton1Click:Connect(function() popupDong.Visible=false end)
 
 nutStart.MouseButton1Click:Connect(function()
     if not dangHoatDong then
-        if not mucTieu then nhanTrangThai.Text="⚠️ Chưa chọn target!" return end
-        dangHoatDong=true nutStart.Text="⏸ DỪNG" nutStart.BackgroundColor3=Color3.fromRGB(220,50,50) nhanTrangThai.Text="Đang gửi duel..."
-        task.spawn(function() batDauDuel() end)
+        if vaiTro=="chu" and not mucTieu then nhanTrangThai.Text="⚠️ Chưa chọn target!" return end
+        if vaiTro=="clone" and not accChu then nhanTrangThai.Text="⚠️ Chưa chọn chủ!" return end
+        dangHoatDong=true nutStart.Text="⏸ DỪNG" nutStart.BackgroundColor3=Color3.fromRGB(220,50,50)
+        if vaiTro=="chu" then
+            nhanTrangThai.Text="Đang gửi duel..."
+            guiTinHieuAn() task.wait(0.2) guiChallenge() task.wait(4)
+            task.spawn(vongLapCombat) theoDoiMauVaLap()
+        else
+            nhanTrangThai.Text="🟢 Đang đợi tín hiệu..."
+        end
     else
-        dangHoatDong=false dangDanh=false dungDiChuyen() nutStart.Text="▶ START" nutStart.BackgroundColor3=Color3.fromRGB(0,160,80) nhanTrangThai.Text="Đã dừng"
+        dangHoatDong=false dangDanh=false dungDiChuyen()
+        nutStart.Text="▶ START" nutStart.BackgroundColor3=Color3.fromRGB(0,160,80)
+        nhanTrangThai.Text="⏸ Đã dừng"
     end
 end)
 
--- DRAG AN TOÀN
-local dangKeo=nil local diemBatDau=nil local viTriBatDau=nil
-khungChinh.InputBegan:Connect(function(input)
-    if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then
-        if dangKeo then return end dangKeo=input diemBatDau=input.Position viTriBatDau=khungChinh.Position
-    end
+-- ==================== CHỌN VAI TRÒ ====================
+nutChu.MouseButton1Click:Connect(function()
+    vaiTro="chu" tieuDe.Text="👑 CHỦ - DUEL 1VS1"
+    guiChon.Visible=false guiChinh.Visible=true capNhatDanhSach()
 end)
-UIS.InputEnded:Connect(function(input) if input==dangKeo then dangKeo=nil diemBatDau=nil viTriBatDau=nil end end)
-UIS.InputChanged:Connect(function(input)
-    if input==dangKeo then
-        local delta=input.Position-diemBatDau
-        khungChinh.Position=UDim2.new(viTriBatDau.X.Scale,viTriBatDau.X.Offset+delta.X,viTriBatDau.Y.Scale,viTriBatDau.Y.Offset+delta.Y)
-    end
+nutClone.MouseButton1Click:Connect(function()
+    vaiTro="clone" tieuDe.Text="🤖 CLONE - AUTO ACCEPT"
+    guiChon.Visible=false guiChinh.Visible=true capNhatDanhSach()
 end)
 
+-- ==================== DRAG ====================
+local function themDrag(khung)
+    local dangKeo,diemBatDau,viTriBatDau=nil,nil,nil
+    khung.InputBegan:Connect(function(input)
+        if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then
+            if dangKeo then return end dangKeo=input diemBatDau=input.Position viTriBatDau=khung.Position
+        end
+    end)
+    UIS.InputEnded:Connect(function(input) if input==dangKeo then dangKeo,diemBatDau,viTriBatDau=nil,nil,nil end end)
+    UIS.InputChanged:Connect(function(input)
+        if input==dangKeo then local delta=input.Position-diemBatDau khung.Position=UDim2.new(viTriBatDau.X.Scale,viTriBatDau.X.Offset+delta.X,viTriBatDau.Y.Scale,viTriBatDau.Y.Offset+delta.Y) end
+    end)
+end
+themDrag(khungChon)
+themDrag(khungChinh)
+
+-- Cập nhật trạng thái
 task.spawn(function()
-    while gui and gui.Parent do
-        if dangHoatDong and mucTieu and mucTieu.Character then
-            local mau=mucTieu.Character:FindFirstChild("Humanoid")
-            nhanTrangThai.Text=mau and "🎯 "..mucTieu.DisplayName.." | HP: "..math.floor(mau.Health) or "🎯 "..mucTieu.DisplayName.." | Đang đợi..."
-        elseif dangHoatDong then nhanTrangThai.Text="⏳ Đang duel..."
+    while guiChinh and guiChinh.Parent do
+        if dangHoatDong then
+            local mt = vaiTro=="chu" and mucTieu or accChu
+            if vaiTro=="clone" then
+                if nhanDuocTinHieu then nhanTrangThai.Text="📩 Đã nhận tín hiệu! Đang Accept..."
+                else nhanTrangThai.Text="🟢 Đang đợi tín hiệu...\nĐã chọn: "..(mt and mt.DisplayName or "?") end
+            elseif vaiTro=="chu" and mt and mt.Character then
+                local mau=mt.Character:FindFirstChild("Humanoid")
+                nhanTrangThai.Text=mau and "🎯 "..mt.DisplayName.." | HP: "..math.floor(mau.Health) or "🎯 "..mt.DisplayName.." | Đang đợi..."
+            end
         end
         task.wait(0.5)
     end
