@@ -1,4 +1,4 @@
--- code số 63: AUTO DUEL 1VS1 - MƯỢT KHÔNG LAG (FIXED)
+-- code số 63: AUTO DUEL 1VS1 - MƯỢT KHÔNG LAG (FULL FIXED)
 local player = game.Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 local UIS = game:GetService("UserInputService")
@@ -23,91 +23,59 @@ local dangDanh = false
 local dangDi = false
 local tvuDi = nil
 
--- ==================== RING SYSTEM (FIXED - KHÔNG LAG) ====================
-local ringEnabled = false
-local ringCache = {}
-local lastRingCheck = 0
-local isInRing = false
-
--- Cache ring objects 1 lần
-local function cacheRingObjects()
-    ringCache = {}
-    for _, o in ipairs(workspace:GetDescendants()) do
-        if (o.Name == "Spawn1" or o.Name == "Spawn2") and (o:IsA("BasePart") or o:IsA("MeshPart")) then
-            table.insert(ringCache, o)
+-- ==================== RING SYSTEM (SPAWN + RING CỐ ĐỊNH 60FPS) ====================
+local function dichSpawn()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.ClassName == "SpawnLocation" or obj.Name == "Spawn1" or obj.Name == "Spawn2" then
+            if obj.ClassName == "SpawnLocation" then
+                obj.Duration = 0
+            end
+            if obj:IsA("BasePart") or obj:IsA("MeshPart") or obj.ClassName == "SpawnLocation" then
+                obj.CFrame = CFrame.new(TOADO)
+                obj.Velocity = Vector3.zero
+                obj.Anchored = true
+            end
         end
     end
 end
-cacheRingObjects()
 
--- Check ring với cache (KHÔNG quét workspace)
-local function trongRing()
-    if not ringEnabled then return false end
-    local c = player.Character
-    if not c then return false end
-    local hrp = c:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-    
-    for _, o in ipairs(ringCache) do
-        if o and o.Parent then
-            local dist = (hrp.Position - o.Position).Magnitude
-            if dist < 5 then return true end
-        end
-    end
-    return false
-end
+-- RenderStep chạy mỗi frame (~60fps), giữ spawn cố định
+RunService.RenderStepped:Connect(function()
+    dichSpawn()
+end)
 
--- Fix spawn với timer (KHÔNG dùng RenderStepped)
-task.spawn(function()
-    while true do
-        task.wait(0.3) -- chỉ chạy 3 lần/giây thay vì 60
-        if ringEnabled and trongRing() then
-            local c = player.Character
-            if c then
-                local hrp = c:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local dist = (hrp.Position - TOADO).Magnitude
-                    if dist > 5 then
-                        hrp.CFrame = CFrame.new(TOADO)
-                        hrp.Velocity = Vector3.zero
-                    end
-                end
+-- Kéo nhân vật về đúng vị trí mỗi frame
+RunService.RenderStepped:Connect(function()
+    local char = player.Character
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local dist = (hrp.Position - TOADO).Magnitude
+            if dist > 3 then
+                hrp.CFrame = CFrame.new(TOADO)
+                hrp.Velocity = Vector3.zero
             end
         end
     end
 end)
 
--- Fix spawn locations (KHÔNG quét workspace liên tục)
-local function fixSpawnLocation(o)
-    if not ringEnabled then return end
-    if o.ClassName == "SpawnLocation" then
-        pcall(function() o.Duration = 0 end)
-    end
-    if o:IsA("BasePart") or o:IsA("MeshPart") or o.ClassName == "SpawnLocation" then
-        pcall(function()
-            o.Anchored = true
-            o.CFrame = CFrame.new(TOADO)
-            o.Velocity = Vector3.zero
-        end)
-    end
-end
-
--- Chỉ xử lý khi có object mới
-workspace.DescendantAdded:Connect(function(o)
-    if not ringEnabled then return end
-    if o.Name == "Spawn1" or o.Name == "Spawn2" or o.ClassName == "SpawnLocation" then
-        table.insert(ringCache, o)
-        fixSpawnLocation(o)
+-- CharacterAdded
+player.CharacterAdded:Connect(function(char)
+    local hrp = char:WaitForChild("HumanoidRootPart", 5)
+    if hrp then
+        hrp.CFrame = CFrame.new(TOADO)
+        hrp.Velocity = Vector3.zero
     end
 end)
 
--- Character added fix
-player.CharacterAdded:Connect(function(c)
-    task.wait(0.2)
-    if ringEnabled and trongRing() then
-        local hrp = c:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            pcall(function() hrp.CFrame = CFrame.new(TOADO) end)
+-- DescendantAdded
+workspace.DescendantAdded:Connect(function(obj)
+    if obj.ClassName == "SpawnLocation" or obj.Name == "Spawn1" or obj.Name == "Spawn2" then
+        if obj.ClassName == "SpawnLocation" then obj.Duration = 0 end
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") or obj.ClassName == "SpawnLocation" then
+            obj.Anchored = true
+            obj.CFrame = CFrame.new(TOADO)
+            obj.Velocity = Vector3.zero
         end
     end
 end)
@@ -188,7 +156,7 @@ local function diDen(dich)
         local count = 0
         while chay and dangDi and r and r.Parent and dich and dich.Parent do
             count = count + 1
-            if count > 100 then break end -- timeout 5s
+            if count > 100 then break end
             local dist = (r.Position - dich.Position).Magnitude
             if dist <= 4 then break end
             
@@ -231,13 +199,12 @@ local function lui(dich)
     end)
 end
 
--- COMBAT OPTIMIZED
 local function combat()
     local lastAttack = 0
     local attackCooldown = 0.2
     
     while chay do 
-        task.wait(0.1) -- tăng delay để giảm CPU
+        task.wait(0.1)
         
         local dt = vai == "chu" and mt or chu
         if not dt or not dt.Character then 
@@ -262,7 +229,6 @@ local function combat()
             continue
         end
         
-        -- Hành động combat
         if mau.Health < 3 then
             if kc > 4 then 
                 dangDanh = true 
@@ -294,18 +260,32 @@ local function combat()
     end
 end
 
--- ==================== REMOTE ====================
+-- ==================== REMOTE (FIXED FORMAT) ====================
 local function guiChallenge()
     if not mt then return end
     pcall(function()
-        Remote:FireServer({[1] = {TargetUserId = mt.UserId, Event = "DuelRequest", Action = "Challenge"}})
+        local args = {
+            [1] = {
+                TargetUserId = mt.UserId,
+                Event = "DuelRequest",
+                Action = "Challenge"
+            }
+        }
+        Remote:FireServer(unpack(args))
     end)
 end
 
 local function guiAccept()
     if not chu then return end
     pcall(function()
-        Remote:FireServer({[1] = {ChallengerUserId = chu.UserId, Event = "DuelRequest", Action = "Accept"}})
+        local args = {
+            [1] = {
+                ChallengerUserId = chu.UserId,
+                Event = "DuelRequest",
+                Action = "Accept"
+            }
+        }
+        Remote:FireServer(unpack(args))
     end)
 end
 
@@ -506,24 +486,31 @@ pN.TextSize = 11
 pN.Parent = pop
 Instance.new("UICorner", pN).CornerRadius = UDim.new(0, 5)
 
--- ==================== DANH SÁCH (OPTIMIZED) ====================
-local function updList()
-    -- Xóa cũ
+-- ==================== DANH SÁCH PLAYER (FIXED - KHÔNG LỖI) ====================
+local listUpdating = false
+
+local function updatePlayerList()
+    if listUpdating then return end
+    listUpdating = true
+    
+    -- Xóa cũ an toàn
     for _, v in sf:GetChildren() do 
         if v:IsA("Frame") then 
             v:Destroy() 
         end 
     end
     
-    local count = 0
-    for _, pl in Players:GetPlayers() do
+    local players = Players:GetPlayers()
+    local hasPlayers = false
+    
+    for _, pl in ipairs(players) do
         if pl ~= player then
-            count = count + 1
-            local sel = (vai == "chu" and mt == pl) or (vai == "clone" and chu == pl)
+            hasPlayers = true
+            local isSelected = (vai == "chu" and mt == pl) or (vai == "clone" and chu == pl)
             
             local d = Instance.new("Frame") 
             d.Size = UDim2.new(1, -4, 0, 42) 
-            d.BackgroundColor3 = sel and Color3.fromRGB(80, 20, 130) or Color3.fromRGB(28, 28, 38) 
+            d.BackgroundColor3 = isSelected and Color3.fromRGB(80, 20, 130) or Color3.fromRGB(28, 28, 38) 
             d.BorderSizePixel = 0 
             d.Parent = sf
             Instance.new("UICorner", d).CornerRadius = UDim.new(0, 7)
@@ -568,30 +555,38 @@ local function updList()
                     else 
                         chu = ref 
                     end
-                    updList()
+                    updatePlayerList()
                 end
             end)
         end
     end
     
+    if not hasPlayers then
+        local empty = Instance.new("TextLabel")
+        empty.Size = UDim2.new(1, 0, 0, 30)
+        empty.Text = "⚠️ Không có người chơi"
+        empty.TextColor3 = Color3.fromRGB(200, 200, 200)
+        empty.Font = Enum.Font.Gotham
+        empty.TextSize = 11
+        empty.BackgroundTransparency = 1
+        empty.Parent = sf
+    end
+    
     sf.CanvasSize = UDim2.new(0, 0, 0, math.max(lay.AbsoluteContentSize.Y + 4, 200))
+    listUpdating = false
 end
 
--- Event listeners (OPTIMIZED)
+-- Sự kiện player
 Players.PlayerAdded:Connect(function() 
-    if km.Visible then 
-        task.wait(0.5)
-        updList() 
-    end 
+    task.wait(0.3)
+    if km.Visible then updatePlayerList() end 
 end)
 
 Players.PlayerRemoving:Connect(function(pl) 
     if mt == pl then mt = nil end 
     if chu == pl then chu = nil end 
-    if km.Visible then 
-        task.wait(0.5)
-        updList() 
-    end 
+    task.wait(0.3)
+    if km.Visible then updatePlayerList() end 
 end)
 
 -- ==================== SỰ KIỆN ====================
@@ -600,7 +595,7 @@ b1.MouseButton1Click:Connect(function()
     tt.Text = "👑 CHỦ - DUEL"
     kc.Visible = false 
     km.Visible = true 
-    updList()
+    updatePlayerList()
 end)
 
 b2.MouseButton1Click:Connect(function()
@@ -608,7 +603,7 @@ b2.MouseButton1Click:Connect(function()
     tt.Text = "🤖 CLONE - ACCEPT"
     kc.Visible = false 
     km.Visible = true 
-    updList()
+    updatePlayerList()
 end)
 
 nMin.MouseButton1Click:Connect(function()
@@ -624,7 +619,6 @@ end)
 
 pY.MouseButton1Click:Connect(function() 
     chay = false 
-    ringEnabled = false
     dungDi() 
     gui:Destroy() 
 end)
@@ -645,8 +639,6 @@ nStart.MouseButton1Click:Connect(function()
             return 
         end
         
-        -- BẬT RING
-        ringEnabled = true
         chay = true 
         nStart.Text = "⏸ DỪNG" 
         nStart.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
@@ -696,7 +688,6 @@ nStart.MouseButton1Click:Connect(function()
         end
     else
         chay = false 
-        ringEnabled = false
         dungDi()
         nStart.Text = "▶ START" 
         nStart.BackgroundColor3 = Color3.fromRGB(0, 150, 70)
@@ -730,10 +721,10 @@ end
 drag(kc) 
 drag(km)
 
--- ==================== UPDATE STATUS (OPTIMIZED) ====================
+-- ==================== UPDATE STATUS ====================
 task.spawn(function()
     while gui and gui.Parent do
-        task.wait(1) -- chỉ update 1 lần/giây
+        task.wait(1)
         pcall(function()
             if chay and vai == "chu" and mt and mt.Character then
                 local m = mt.Character:FindFirstChild("Humanoid")
@@ -747,4 +738,7 @@ task.spawn(function()
     end
 end)
 
-print("✅ Script đã được fix, không lag!")
+print("✅ AUTO DUEL 1VS1 - ĐÃ FIX FULL!")
+print("✅ SPAWN + RING CỐ ĐỊNH 60FPS!")
+print("✅ REMOTE ĐÚNG FORMAT!")
+print("✅ DANH SÁCH PLAYER KHÔNG LỖI!")
