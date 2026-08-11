@@ -22,9 +22,24 @@ local tinHieu = false
 local dangDanh = false
 local dangDi = false
 local tvuDi = nil
+local ringEnabled = false
 
--- ==================== RING SYSTEM (SPAWN + RING CỐ ĐỊNH 60FPS) ====================
-local function dichSpawn()
+-- ==================== RING SYSTEM (CHỈ ACTIVE KHI Ở TRONG RING) ====================
+local function trongRing()
+    local c = player.Character
+    if not c then return false end
+    local hrp = c:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    
+    -- Kiểm tra nếu đang ở gần spawn
+    if (hrp.Position - TOADO).Magnitude < 20 then
+        return true
+    end
+    return false
+end
+
+local function fixSpawn()
+    if not trongRing() then return end
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj.ClassName == "SpawnLocation" or obj.Name == "Spawn1" or obj.Name == "Spawn2" then
             if obj.ClassName == "SpawnLocation" then
@@ -39,19 +54,25 @@ local function dichSpawn()
     end
 end
 
--- RenderStep chạy mỗi frame (~60fps), giữ spawn cố định
+-- Fix spawn mỗi frame NHƯNG CHỈ KHI Ở TRONG RING
 RunService.RenderStepped:Connect(function()
-    dichSpawn()
+    if not ringEnabled then return end
+    if trongRing() then
+        fixSpawn()
+    end
 end)
 
--- Kéo nhân vật về đúng vị trí mỗi frame
+-- Kéo nhân vật về đúng vị trí NHƯNG CHỈ KHI Ở TRONG RING
 RunService.RenderStepped:Connect(function()
+    if not ringEnabled then return end
+    if not trongRing() then return end
+    
     local char = player.Character
     if char then
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if hrp then
             local dist = (hrp.Position - TOADO).Magnitude
-            if dist > 3 then
+            if dist > 5 then
                 hrp.CFrame = CFrame.new(TOADO)
                 hrp.Velocity = Vector3.zero
             end
@@ -61,15 +82,21 @@ end)
 
 -- CharacterAdded
 player.CharacterAdded:Connect(function(char)
-    local hrp = char:WaitForChild("HumanoidRootPart", 5)
-    if hrp then
-        hrp.CFrame = CFrame.new(TOADO)
-        hrp.Velocity = Vector3.zero
+    task.wait(0.2)
+    if ringEnabled and trongRing() then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = CFrame.new(TOADO)
+            hrp.Velocity = Vector3.zero
+        end
     end
 end)
 
 -- DescendantAdded
 workspace.DescendantAdded:Connect(function(obj)
+    if not ringEnabled then return end
+    if not trongRing() then return end
+    
     if obj.ClassName == "SpawnLocation" or obj.Name == "Spawn1" or obj.Name == "Spawn2" then
         if obj.ClassName == "SpawnLocation" then obj.Duration = 0 end
         if obj:IsA("BasePart") or obj:IsA("MeshPart") or obj.ClassName == "SpawnLocation" then
@@ -493,7 +520,6 @@ local function updatePlayerList()
     if listUpdating then return end
     listUpdating = true
     
-    -- Xóa cũ an toàn
     for _, v in sf:GetChildren() do 
         if v:IsA("Frame") then 
             v:Destroy() 
@@ -576,7 +602,6 @@ local function updatePlayerList()
     listUpdating = false
 end
 
--- Sự kiện player
 Players.PlayerAdded:Connect(function() 
     task.wait(0.3)
     if km.Visible then updatePlayerList() end 
@@ -619,6 +644,7 @@ end)
 
 pY.MouseButton1Click:Connect(function() 
     chay = false 
+    ringEnabled = false
     dungDi() 
     gui:Destroy() 
 end)
@@ -640,6 +666,7 @@ nStart.MouseButton1Click:Connect(function()
         end
         
         chay = true 
+        ringEnabled = true -- BẬT RING KHI START
         nStart.Text = "⏸ DỪNG" 
         nStart.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
         
@@ -688,6 +715,7 @@ nStart.MouseButton1Click:Connect(function()
         end
     else
         chay = false 
+        ringEnabled = false -- TẮT RING KHI STOP
         dungDi()
         nStart.Text = "▶ START" 
         nStart.BackgroundColor3 = Color3.fromRGB(0, 150, 70)
@@ -739,6 +767,5 @@ task.spawn(function()
 end)
 
 print("✅ AUTO DUEL 1VS1 - ĐÃ FIX FULL!")
-print("✅ SPAWN + RING CỐ ĐỊNH 60FPS!")
-print("✅ REMOTE ĐÚNG FORMAT!")
-print("✅ DANH SÁCH PLAYER KHÔNG LỖI!")
+print("✅ CHỈ ACTIVE KHI Ở TRONG RING!")
+print("✅ KHÔNG BỊ GIẬT KHI RA NGOÀI!")
