@@ -1,4 +1,4 @@
---code số 68: AUTO DUEL 1VS1 - ZONE RING - CLONE ACCEPT NGOÀI ZONE + CHỦ COMBAT TRONG ZONE
+--code số 68: AUTO DUEL 1VS1 - ZONE RING - REMOTE ĐÚNG ĐỊNH DẠNG
 local player = game.Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 local UIS = game:GetService("UserInputService")
@@ -73,14 +73,29 @@ local function diDen(dich)
     end)
 end
 
--- ==================== REMOTE ====================
+-- ==================== REMOTE (ĐÚNG ĐỊNH DẠNG) ====================
 local function guiChallenge()
     if not mt then return end
-    DuelRemote:FireServer({[1]={TargetUserId=mt.UserId,Event="DuelRequest",Action="Challenge"}})
+    local args = {
+        [1] = {
+            ["TargetUserId"] = mt.UserId,
+            ["Event"] = "DuelRequest",
+            ["Action"] = "Challenge"
+        }
+    }
+    DuelRemote:FireServer(unpack(args))
 end
+
 local function guiAccept()
     if not chu then return end
-    DuelRemote:FireServer({[1]={ChallengerUserId=chu.UserId,Event="DuelRequest",Action="Accept"}})
+    local args = {
+        [1] = {
+            ["ChallengerUserId"] = chu.UserId,
+            ["Event"] = "DuelRequest",
+            ["Action"] = "Accept"
+        }
+    }
+    DuelRemote:FireServer(unpack(args))
 end
 
 -- ==================== TÍN HIỆU ====================
@@ -98,37 +113,25 @@ local function nhanTinHieu()
 end
 
 -- ==================== VÒNG LẶP ====================
--- CLONE: Luôn accept khi có tín hiệu (ở ngoài zone), vào zone thì đứng im
 local function vongLapClone()
     while chay do
         if not chu then task.wait(0.5) continue end
         local cloneTrongZone = trongZone(player)
         local chuTrongZone = trongZone(chu)
-        
-        if cloneTrongZone and chuTrongZone then
-            -- Cả 2 trong zone -> đứng im
-            dungDi()
-            task.wait(0.5)
+        if cloneTrongZone and chuTrongZone then dungDi() task.wait(0.5)
         else
-            -- Ở ngoài zone -> accept mỗi 2s khi có tín hiệu
-            if nhanTinHieu() and tick()-lastAccept > 2 then
-                guiAccept()
-                lastAccept = tick()
-            end
+            if nhanTinHieu() and tick()-lastAccept > 2 then guiAccept() lastAccept = tick() end
             task.wait(0.2)
         end
     end
 end
 
--- CHỦ: Ở ngoài zone gửi remote/3s, vào zone combat liên tục
 local function vongLapChu()
     while chay do
         if not mt then task.wait(0.5) continue end
         local chuTrongZone = trongZone(player)
         local cloneTrongZone = trongZone(mt)
-        
         if chuTrongZone and cloneTrongZone then
-            -- Cả 2 trong zone -> combat liên tục
             local tc = mt.Character
             if tc then
                 local dich = tc:FindFirstChild("HumanoidRootPart")
@@ -137,21 +140,15 @@ local function vongLapChu()
                 if dich and mau and mau.Health > 0 and r then
                     local kc = (r.Position-dich.Position).Magnitude
                     if mau.Health < 3 then
-                        if kc > 4 then if not dangDi then diDen(dich) end
-                        else dungDi() stomp() end
+                        if kc > 4 then if not dangDi then diDen(dich) end else dungDi() stomp() end
                     else
-                        if kc > 4 then if not dangDi then diDen(dich) end
-                        else dungDi() danh() tom() end
+                        if kc > 4 then if not dangDi then diDen(dich) end else dungDi() danh() tom() end
                     end
                 end
             end
             task.wait(0.05)
         else
-            -- Ngoài zone -> gửi challenge mỗi 3s
-            guiTinHieu()
-            task.wait(0.2)
-            guiChallenge()
-            task.wait(3)
+            guiTinHieu() task.wait(0.2) guiChallenge() task.wait(3)
         end
     end
 end
