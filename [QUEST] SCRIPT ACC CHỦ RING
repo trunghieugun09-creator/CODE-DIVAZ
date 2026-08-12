@@ -1,4 +1,4 @@
---code số 68: AUTO DUEL 1VS1 - ZONE RING - REMOTE ĐÚNG ĐỊNH DẠNG
+--code số 69: AUTO DUEL 1VS1 - ZONE RING - FULL - REMOTE ĐÚNG ĐỊNH DẠNG
 local player = game.Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 local UIS = game:GetService("UserInputService")
@@ -21,7 +21,6 @@ local chu = nil
 local dangDi = false
 local tvuDi = nil
 local daLayAvt = {}
-local lastAccept = 0
 
 -- ==================== TRONG ZONE ====================
 local function trongZone(pl)
@@ -76,62 +75,27 @@ end
 -- ==================== REMOTE (ĐÚNG ĐỊNH DẠNG) ====================
 local function guiChallenge()
     if not mt then return end
-    local args = {
-        [1] = {
-            ["TargetUserId"] = mt.UserId,
-            ["Event"] = "DuelRequest",
-            ["Action"] = "Challenge"
-        }
-    }
+    local args = {[1] = {TargetUserId = mt.UserId, Event = "DuelRequest", Action = "Challenge"}}
     DuelRemote:FireServer(unpack(args))
 end
-
 local function guiAccept()
     if not chu then return end
-    local args = {
-        [1] = {
-            ["ChallengerUserId"] = chu.UserId,
-            ["Event"] = "DuelRequest",
-            ["Action"] = "Accept"
-        }
-    }
+    local args = {[1] = {ChallengerUserId = chu.UserId, Event = "DuelRequest", Action = "Accept"}}
     DuelRemote:FireServer(unpack(args))
-end
-
--- ==================== TÍN HIỆU ====================
-local function guiTinHieu()
-    local c=player.Character if not c then return end
-    local hrp=c:FindFirstChild("HumanoidRootPart") if not hrp then return end
-    pcall(function() hrp:SetAttribute("DuelSignal",tick()) end)
-    task.delay(0.5,function() pcall(function() hrp:SetAttribute("DuelSignal",nil) end) end)
-end
-local function nhanTinHieu()
-    if not chu or not chu.Character then return false end
-    local hrp=chu.Character:FindFirstChild("HumanoidRootPart") if not hrp then return false end
-    local signal=hrp:GetAttribute("DuelSignal")
-    return signal and tonumber(signal) and tick()-tonumber(signal)<1
 end
 
 -- ==================== VÒNG LẶP ====================
 local function vongLapClone()
     while chay do
         if not chu then task.wait(0.5) continue end
-        local cloneTrongZone = trongZone(player)
-        local chuTrongZone = trongZone(chu)
-        if cloneTrongZone and chuTrongZone then dungDi() task.wait(0.5)
-        else
-            if nhanTinHieu() and tick()-lastAccept > 2 then guiAccept() lastAccept = tick() end
-            task.wait(0.2)
-        end
+        if trongZone(player) and trongZone(chu) then dungDi() task.wait(0.5)
+        else guiAccept() task.wait(2) end
     end
 end
-
 local function vongLapChu()
     while chay do
         if not mt then task.wait(0.5) continue end
-        local chuTrongZone = trongZone(player)
-        local cloneTrongZone = trongZone(mt)
-        if chuTrongZone and cloneTrongZone then
+        if trongZone(player) and trongZone(mt) then
             local tc = mt.Character
             if tc then
                 local dich = tc:FindFirstChild("HumanoidRootPart")
@@ -147,9 +111,7 @@ local function vongLapChu()
                 end
             end
             task.wait(0.05)
-        else
-            guiTinHieu() task.wait(0.2) guiChallenge() task.wait(3)
-        end
+        else guiChallenge() task.wait(3) end
     end
 end
 
@@ -207,7 +169,7 @@ nStart.MouseButton1Click:Connect(function()
     if not chay then
         if vai=="chu" and not mt then st.Text="⚠️ Chưa chọn target!" return end
         if vai=="clone" and not chu then st.Text="⚠️ Chưa chọn chủ!" return end
-        chay=true nStart.Text="⏸ DỪNG" nStart.BackgroundColor3=Color3.fromRGB(200,40,40) lastAccept=0
+        chay=true nStart.Text="⏸ DỪNG" nStart.BackgroundColor3=Color3.fromRGB(200,40,40)
         if vai=="chu" then st.Text="⏳ Đợi vào zone..." task.spawn(vongLapChu)
         else st.Text="🟢 Đợi tín hiệu..." task.spawn(vongLapClone) end
     else chay=false dungDi() nStart.Text="▶ START" nStart.BackgroundColor3=Color3.fromRGB(0,150,70) st.Text="⏸ Đã dừng" end
@@ -227,7 +189,7 @@ task.spawn(function()
             local tz=trongZone(player)
             local dz=(vai=="chu" and mt and trongZone(mt)) or (vai=="clone" and chu and trongZone(chu))
             if vai=="chu" then st.Text=tz and dz and "⚔️ ĐANG ĐÁNH" or (tz and "🟡 Trong zone" or "⏳ Đợi zone...")
-            else st.Text=tz and dz and "🤖 ĐỨNG IM" or (tz and "🟡 Trong zone" or "🟢 Đợi tín hiệu...") end
+            else st.Text=tz and dz and "🤖 ĐỨNG IM" or (tz and "🟡 Trong zone" or "🟢 Đợi...") end
         end
         task.wait(0.5)
     end
