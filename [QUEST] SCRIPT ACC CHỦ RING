@@ -1,4 +1,4 @@
---code số 70: AUTO DUEL 1VS1 - ZONE RING - CLONE BUG XUỐNG ĐẤT KHI VÀO ZONE
+--code số 70: AUTO DUEL 1VS1 - ZONE RING - SỬA: NGỪNG REMOTE KHI TRONG ZONE + CLONE BUG NGAY
 local player = game.Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 local UIS = game:GetService("UserInputService")
@@ -19,6 +19,7 @@ local chay = false
 local mt = nil
 local chu = nil
 local daLayAvt = {}
+local daBug = false
 
 -- ==================== TRONG ZONE ====================
 local function trongZone(pl)
@@ -54,37 +55,39 @@ local function guiAccept()
     DuelRemote:FireServer(unpack(args))
 end
 
--- ==================== BUG XUỐNG ĐẤT ====================
-local function bugXuongDat()
+-- ==================== BUG XUỐNG VOID ====================
+local function bugXuongVoid()
     local c = player.Character
     if not c then return end
     local hrp = c:FindFirstChild("HumanoidRootPart")
-    local hum = c:FindFirstChild("Humanoid")
-    if not hrp or not hum then return end
+    if not hrp then return end
     
-    -- Set HRP Y xuống -50
+    -- Đẩy HRP xuống sâu để rơi void -> chết -> reset
     pcall(function()
-        hrp.CFrame = CFrame.new(hrp.Position.X, -50, hrp.Position.Z)
-        hrp.Velocity = Vector3.new(0, -1000, 0)
-        hrp.Anchored = true
+        hrp.Anchored = false
+        hrp.CFrame = CFrame.new(hrp.Position.X, -100, hrp.Position.Z)
+        hrp.Velocity = Vector3.new(0, -500, 0)
     end)
-    task.wait(0.1)
-    pcall(function() hrp.Anchored = false end)
 end
 
 -- ==================== VÒNG LẶP ====================
--- CLONE: Ngoài zone accept mỗi 2s, vào zone bug xuống đất ngay
+-- CLONE: Ngoài zone accept mỗi 2s, vào zone bug xuống void
 local function vongLapClone()
-    local daBug = false
     while chay do
         if not chu then task.wait(0.5) daBug = false continue end
-        if trongZone(player) and trongZone(chu) then
+        
+        local cloneTrong = trongZone(player)
+        local chuTrong = trongZone(chu)
+        
+        if cloneTrong and chuTrong then
+            -- CẢ 2 TRONG ZONE -> BUG XUỐNG VOID, KHÔNG SPAM REMOTE
             if not daBug then
-                bugXuongDat()
+                bugXuongVoid()
                 daBug = true
             end
-            task.wait(0.5)
+            task.wait(0.3)
         else
+            -- NGOÀI ZONE -> ACCEPT
             daBug = false
             guiAccept()
             task.wait(2)
@@ -92,14 +95,19 @@ local function vongLapClone()
     end
 end
 
--- CHỦ: Ngoài zone gửi challenge mỗi 3s, trong zone không làm gì (clone tự chết)
+-- CHỦ: Ngoài zone gửi challenge mỗi 3s, trong zone KHÔNG LÀM GÌ
 local function vongLapChu()
     while chay do
         if not mt then task.wait(0.5) continue end
-        if trongZone(player) and trongZone(mt) then
-            -- Clone sẽ tự bug chết, chủ không cần làm gì
+        
+        local chuTrong = trongZone(player)
+        local cloneTrong = trongZone(mt)
+        
+        if chuTrong and cloneTrong then
+            -- CẢ 2 TRONG ZONE -> KHÔNG SPAM REMOTE, CHỜ CLONE BUG CHẾT
             task.wait(0.5)
         else
+            -- NGOÀI ZONE -> CHALLENGE
             guiChallenge()
             task.wait(3)
         end
@@ -160,7 +168,7 @@ nStart.MouseButton1Click:Connect(function()
     if not chay then
         if vai=="chu" and not mt then st.Text="⚠️ Chưa chọn target!" return end
         if vai=="clone" and not chu then st.Text="⚠️ Chưa chọn chủ!" return end
-        chay=true nStart.Text="⏸ DỪNG" nStart.BackgroundColor3=Color3.fromRGB(200,40,40)
+        chay=true daBug=false nStart.Text="⏸ DỪNG" nStart.BackgroundColor3=Color3.fromRGB(200,40,40)
         if vai=="chu" then st.Text="⏳ Đợi vào zone..." task.spawn(vongLapChu)
         else st.Text="🟢 Đợi..." task.spawn(vongLapClone) end
     else chay=false nStart.Text="▶ START" nStart.BackgroundColor3=Color3.fromRGB(0,150,70) st.Text="⏸ Đã dừng" end
@@ -179,8 +187,8 @@ task.spawn(function()
         if chay then
             local tz=trongZone(player)
             local dz=(vai=="chu" and mt and trongZone(mt)) or (vai=="clone" and chu and trongZone(chu))
-            if vai=="chu" then st.Text=tz and dz and "✅ CLONE TRONG ZONE" or (tz and "🟡 Trong zone" or "⏳ Đợi zone...")
-            else st.Text=tz and dz and "💀 BUG XUỐNG ĐẤT" or (tz and "🟡 Trong zone" or "🟢 Đợi...") end
+            if vai=="chu" then st.Text=tz and dz and "✅ CẢ 2 TRONG ZONE" or (tz and "🟡 Chủ trong zone" or "⏳ Đợi zone...")
+            else st.Text=tz and dz and (daBug and "💀 ĐÃ BUG" or "💀 ĐANG BUG...") or (tz and "🟡 Clone trong zone" or "🟢 Đợi...") end
         end
         task.wait(0.5)
     end
