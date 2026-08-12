@@ -1,4 +1,4 @@
---code số 70: AUTO DUEL 1VS1 - ZONE RING - SỬA: NGỪNG REMOTE KHI TRONG ZONE + CLONE BUG NGAY
+--code số 70: AUTO DUEL 1VS1 - ZONE RING - DEBUG TRẠNG THÁI + SỬA CLONE
 local player = game.Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 local UIS = game:GetService("UserInputService")
@@ -34,7 +34,8 @@ local function trongZone(pl)
             local pp = ring.PrimaryPart or ring:FindFirstChildWhichIsA("BasePart")
             if pp then
                 local tam = pp.Position + Vector3.new(ZONE_X[i], ZONE_Y[i], ZONE_Z[i])
-                if (Vector3.new(pos.X,0,pos.Z) - Vector3.new(tam.X,0,tam.Z)).Magnitude <= ZONE_R then
+                local dist = (Vector3.new(pos.X,0,pos.Z) - Vector3.new(tam.X,0,tam.Z)).Magnitude
+                if dist <= ZONE_R then
                     return true
                 end
             end
@@ -58,36 +59,35 @@ end
 -- ==================== BUG XUỐNG VOID ====================
 local function bugXuongVoid()
     local c = player.Character
-    if not c then return end
+    if not c then return false end
     local hrp = c:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    -- Đẩy HRP xuống sâu để rơi void -> chết -> reset
+    if not hrp then return false end
     pcall(function()
         hrp.Anchored = false
         hrp.CFrame = CFrame.new(hrp.Position.X, -100, hrp.Position.Z)
         hrp.Velocity = Vector3.new(0, -500, 0)
     end)
+    return true
 end
 
 -- ==================== VÒNG LẶP ====================
--- CLONE: Ngoài zone accept mỗi 2s, vào zone bug xuống void
 local function vongLapClone()
     while chay do
         if not chu then task.wait(0.5) daBug = false continue end
         
         local cloneTrong = trongZone(player)
         local chuTrong = trongZone(chu)
+        local caHaiTrong = cloneTrong and chuTrong
         
-        if cloneTrong and chuTrong then
-            -- CẢ 2 TRONG ZONE -> BUG XUỐNG VOID, KHÔNG SPAM REMOTE
+        if caHaiTrong then
+            -- CẢ 2 TRONG ZONE -> BUG, KHÔNG SPAM
             if not daBug then
-                bugXuongVoid()
-                daBug = true
+                local ok = bugXuongVoid()
+                if ok then daBug = true end
             end
             task.wait(0.3)
         else
-            -- NGOÀI ZONE -> ACCEPT
+            -- NGOÀI ZONE -> ACCEPT MỖI 2S
             daBug = false
             guiAccept()
             task.wait(2)
@@ -95,19 +95,19 @@ local function vongLapClone()
     end
 end
 
--- CHỦ: Ngoài zone gửi challenge mỗi 3s, trong zone KHÔNG LÀM GÌ
 local function vongLapChu()
     while chay do
         if not mt then task.wait(0.5) continue end
         
         local chuTrong = trongZone(player)
         local cloneTrong = trongZone(mt)
+        local caHaiTrong = chuTrong and cloneTrong
         
-        if chuTrong and cloneTrong then
-            -- CẢ 2 TRONG ZONE -> KHÔNG SPAM REMOTE, CHỜ CLONE BUG CHẾT
+        if caHaiTrong then
+            -- CẢ 2 TRONG ZONE -> KHÔNG SPAM
             task.wait(0.5)
         else
-            -- NGOÀI ZONE -> CHALLENGE
+            -- NGOÀI ZONE -> CHALLENGE MỖI 3S
             guiChallenge()
             task.wait(3)
         end
@@ -122,17 +122,20 @@ local t1=Instance.new("TextLabel") t1.Size=UDim2.new(1,0,0,30) t1.Text="⚔️ C
 local b1=Instance.new("TextButton") b1.Size=UDim2.new(0.7,0,0,36) b1.Position=UDim2.new(0.15,0,0,40) b1.BackgroundColor3=Color3.fromRGB(0,140,70) b1.Text="👑 CHỦ" b1.TextColor3=Color3.new(1,1,1) b1.Font=Enum.Font.GothamBold b1.TextSize=14 b1.Parent=kc Instance.new("UICorner",b1).CornerRadius=UDim.new(0,8)
 local b2=Instance.new("TextButton") b2.Size=UDim2.new(0.7,0,0,36) b2.Position=UDim2.new(0.15,0,0,85) b2.BackgroundColor3=Color3.fromRGB(0,90,180) b2.Text="🤖 CLONE" b2.TextColor3=Color3.new(1,1,1) b2.Font=Enum.Font.GothamBold b2.TextSize=14 b2.Parent=kc Instance.new("UICorner",b2).CornerRadius=UDim.new(0,8)
 
-local km=Instance.new("Frame") km.Size=UDim2.new(0,230,0,310) km.Position=UDim2.new(0.5,-115,0.5,-155) km.BackgroundColor3=Color3.fromRGB(12,12,20) km.BorderSizePixel=0 km.Visible=false km.Active=true km.Parent=gui
+local km=Instance.new("Frame") km.Size=UDim2.new(0,230,0,340) km.Position=UDim2.new(0.5,-115,0.5,-170) km.BackgroundColor3=Color3.fromRGB(12,12,20) km.BorderSizePixel=0 km.Visible=false km.Active=true km.Parent=gui
 Instance.new("UICorner",km).CornerRadius=UDim.new(0,12) Instance.new("UIStroke",km).Color=Color3.fromRGB(255,255,255) Instance.new("UIStroke",km).Thickness=1.5
 local top=Instance.new("Frame") top.Size=UDim2.new(1,0,0,34) top.BackgroundColor3=Color3.fromRGB(20,20,30) top.BorderSizePixel=0 top.Parent=km Instance.new("UICorner",top).CornerRadius=UDim.new(0,12)
 local tt=Instance.new("TextLabel") tt.Size=UDim2.new(0.5,0,1,0) tt.Position=UDim2.new(0,12,0,0) tt.Text="DUEL" tt.TextColor3=Color3.new(1,1,1) tt.Font=Enum.Font.GothamBold tt.TextSize=13 tt.BackgroundTransparency=1 tt.TextXAlignment=Enum.TextXAlignment.Left tt.Parent=top
 local nMin=Instance.new("TextButton") nMin.Size=UDim2.new(0,22,0,22) nMin.Position=UDim2.new(1,-52,0.5,-11) nMin.Text="—" nMin.TextColor3=Color3.new(1,1,1) nMin.BackgroundColor3=Color3.fromRGB(90,90,110) nMin.Font=Enum.Font.GothamBold nMin.TextSize=13 nMin.Parent=top Instance.new("UICorner",nMin).CornerRadius=UDim.new(0,5)
 local nX=Instance.new("TextButton") nX.Size=UDim2.new(0,22,0,22) nX.Position=UDim2.new(1,-24,0.5,-11) nX.Text="✕" nX.TextColor3=Color3.new(1,1,1) nX.BackgroundColor3=Color3.fromRGB(210,40,40) nX.Font=Enum.Font.GothamBold nX.TextSize=13 nX.Parent=top Instance.new("UICorner",nX).CornerRadius=UDim.new(0,5)
 
-local sf=Instance.new("ScrollingFrame") sf.Size=UDim2.new(1,-12,0,190) sf.Position=UDim2.new(0,6,0,38) sf.BackgroundColor3=Color3.fromRGB(16,16,24) sf.BorderSizePixel=0 sf.ScrollBarThickness=3 sf.ClipsDescendants=true sf.CanvasSize=UDim2.new(0,0,0,0) sf.Parent=km Instance.new("UICorner",sf).CornerRadius=UDim.new(0,8)
+local sf=Instance.new("ScrollingFrame") sf.Size=UDim2.new(1,-12,0,180) sf.Position=UDim2.new(0,6,0,38) sf.BackgroundColor3=Color3.fromRGB(16,16,24) sf.BorderSizePixel=0 sf.ScrollBarThickness=3 sf.ClipsDescendants=true sf.CanvasSize=UDim2.new(0,0,0,0) sf.Parent=km Instance.new("UICorner",sf).CornerRadius=UDim.new(0,8)
 local lay=Instance.new("UIListLayout") lay.Padding=UDim.new(0,2) lay.Parent=sf
 
-local st=Instance.new("TextLabel") st.Size=UDim2.new(1,0,0,36) st.Position=UDim2.new(0,0,1,-54) st.Text="Sẵn sàng" st.TextColor3=Color3.new(0.7,0.7,0.7) st.BackgroundTransparency=1 st.Font=Enum.Font.GothamBold st.TextSize=10 st.TextXAlignment=Enum.TextXAlignment.Center st.Parent=km
+-- Trạng thái zone
+local stZone=Instance.new("TextLabel") stZone.Size=UDim2.new(1,0,0,18) stZone.Position=UDim2.new(0,0,0,222) stZone.Text="📡 Đang kiểm tra..." stZone.TextColor3=Color3.new(0.7,0.7,1) stZone.BackgroundTransparency=1 stZone.Font=Enum.Font.Gotham stZone.TextSize=10 stZone.TextXAlignment=Enum.TextXAlignment.Center stZone.Parent=km
+
+local st=Instance.new("TextLabel") st.Size=UDim2.new(1,0,0,18) st.Position=UDim2.new(0,0,0,242) st.Text="Sẵn sàng" st.TextColor3=Color3.new(0.7,0.7,0.7) st.BackgroundTransparency=1 st.Font=Enum.Font.GothamBold st.TextSize=10 st.TextXAlignment=Enum.TextXAlignment.Center st.Parent=km
 local nStart=Instance.new("TextButton") nStart.Size=UDim2.new(0.7,0,0,32) nStart.Position=UDim2.new(0.15,0,1,-36) nStart.BackgroundColor3=Color3.fromRGB(0,150,70) nStart.Text="▶ START" nStart.TextColor3=Color3.new(1,1,1) nStart.Font=Enum.Font.GothamBold nStart.TextSize=13 nStart.Parent=km Instance.new("UICorner",nStart).CornerRadius=UDim.new(0,7)
 
 local pop=Instance.new("Frame") pop.Size=UDim2.new(0,190,0,80) pop.Position=UDim2.new(0.5,-95,0.5,-40) pop.BackgroundColor3=Color3.fromRGB(22,22,32) pop.BorderSizePixel=0 pop.Visible=false pop.Parent=gui Instance.new("UICorner",pop).CornerRadius=UDim.new(0,10) Instance.new("UIStroke",pop).Color=Color3.fromRGB(255,255,255) Instance.new("UIStroke",pop).Thickness=1.5
@@ -160,7 +163,7 @@ Players.PlayerRemoving:Connect(function(pl) daLayAvt[pl.UserId]=nil if mt==pl th
 
 b1.MouseButton1Click:Connect(function() vai="chu" tt.Text="👑 CHỦ - DUEL" kc.Visible=false km.Visible=true updList() end)
 b2.MouseButton1Click:Connect(function() vai="clone" tt.Text="🤖 CLONE - BUG" kc.Visible=false km.Visible=true updList() end)
-nMin.MouseButton1Click:Connect(function() sf.Visible=not sf.Visible nStart.Visible=not nStart.Visible st.Visible=not st.Visible km.Size=sf.Visible and UDim2.new(0,230,0,310) or UDim2.new(0,230,0,34) end)
+nMin.MouseButton1Click:Connect(function() sf.Visible=not sf.Visible nStart.Visible=not nStart.Visible st.Visible=not st.Visible stZone.Visible=not stZone.Visible km.Size=sf.Visible and UDim2.new(0,230,0,340) or UDim2.new(0,230,0,34) end)
 nX.MouseButton1Click:Connect(function() pop.Visible=true end)
 pY.MouseButton1Click:Connect(function() chay=false gui:Destroy() end)
 pN.MouseButton1Click:Connect(function() pop.Visible=false end)
@@ -182,14 +185,28 @@ local function drag(k)
 end
 drag(kc) drag(km)
 
+-- Cập nhật trạng thái zone liên tục
 task.spawn(function()
     while gui and gui.Parent do
         if chay then
-            local tz=trongZone(player)
-            local dz=(vai=="chu" and mt and trongZone(mt)) or (vai=="clone" and chu and trongZone(chu))
-            if vai=="chu" then st.Text=tz and dz and "✅ CẢ 2 TRONG ZONE" or (tz and "🟡 Chủ trong zone" or "⏳ Đợi zone...")
-            else st.Text=tz and dz and (daBug and "💀 ĐÃ BUG" or "💀 ĐANG BUG...") or (tz and "🟡 Clone trong zone" or "🟢 Đợi...") end
+            local tz = trongZone(player)
+            local other = (vai=="chu" and mt) or (vai=="clone" and chu)
+            local dz = other and trongZone(other)
+            
+            -- Dòng trạng thái zone
+            local chuTx = vai=="chu" and "CHỦ" or "CLONE"
+            local dichTx = vai=="chu" and "CLONE" or "CHỦ"
+            stZone.Text = string.format("📍 %s: %s | %s: %s | %s",
+                chuTx, tz and "✅ TRONG" or "❌ NGOÀI",
+                dichTx, dz and "✅ TRONG" or "❌ NGOÀI",
+                (tz and dz) and "⚔️ CẢ 2 TRONG ZONE" or "⏳ CHƯA ĐỦ")
+            
+            if vai=="chu" then
+                st.Text = (tz and dz) and "✅ CẢ 2 TRONG ZONE" or "⏳ Đợi clone..."
+            else
+                st.Text = (tz and dz) and (daBug and "💀 ĐÃ BUG VOID" or "💀 ĐANG BUG...") or "🟢 Đợi..."
+            end
         end
-        task.wait(0.5)
+        task.wait(0.3)
     end
 end)
