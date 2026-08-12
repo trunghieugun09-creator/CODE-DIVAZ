@@ -1,4 +1,4 @@
---code số 67: AUTO DUEL 1VS1 - TÍN HIỆU ẨN QUA ATTRIBUTE - SIÊU MƯỢT
+--code số 67: AUTO DUEL 1VS1 - TÍN HIỆU ATTRIBUTE - SỬA REMOTE ĐÚNG ĐỊNH DẠNG
 local player = game.Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 local UIS = game:GetService("UserInputService")
@@ -7,7 +7,7 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 
 pcall(function() if PlayerGui:FindFirstChild("DUEL_MAIN") then PlayerGui.DUEL_MAIN:Destroy() end end)
 
-local Remote = game:GetService("ReplicatedStorage"):WaitForChild("DuelRemote")
+local DuelRemote = game:GetService("ReplicatedStorage"):WaitForChild("DuelRemote")
 
 local vai = nil
 local chay = false
@@ -68,9 +68,30 @@ local function combat()
     end
 end
 
--- ==================== REMOTE ====================
-local function guiChallenge() if mt then Remote:FireServer({[1]={TargetUserId=mt.UserId,Event="DuelRequest",Action="Challenge"}}) end end
-local function guiAccept() if chu then Remote:FireServer({[1]={ChallengerUserId=chu.UserId,Event="DuelRequest",Action="Accept"}}) end end
+-- ==================== REMOTE (ĐÚNG ĐỊNH DẠNG) ====================
+local function guiChallenge()
+    if not mt then return end
+    local args = {
+        [1] = {
+            ["TargetUserId"] = mt.UserId,
+            ["Event"] = "DuelRequest",
+            ["Action"] = "Challenge"
+        }
+    }
+    DuelRemote:FireServer(unpack(args))
+end
+
+local function guiAccept()
+    if not chu then return end
+    local args = {
+        [1] = {
+            ["ChallengerUserId"] = chu.UserId,
+            ["Event"] = "DuelRequest",
+            ["Action"] = "Accept"
+        }
+    }
+    DuelRemote:FireServer(unpack(args))
+end
 
 -- ==================== TÍN HIỆU ẨN QUA ATTRIBUTE ====================
 local function guiTinHieu()
@@ -156,7 +177,7 @@ nStart.MouseButton1Click:Connect(function()
     else chay=false dungDi() nStart.Text="▶ START" nStart.BackgroundColor3=Color3.fromRGB(0,150,70) st.Text="⏸ Đã dừng" end
 end)
 
--- ==================== DRAG ====================
+-- DRAG
 local function drag(k)
     local keo,dbd,vbd=nil,nil,nil
     k.InputBegan:Connect(function(inp) if inp.UserInputType==Enum.UserInputType.Touch or inp.UserInputType==Enum.UserInputType.MouseButton1 then if keo then return end keo=inp dbd=inp.Position vbd=k.Position end end)
@@ -165,5 +186,4 @@ local function drag(k)
 end
 drag(kc) drag(km)
 
--- Cập nhật trạng thái
 task.spawn(function() while gui and gui.Parent do if chay and vai=="chu" and mt and mt.Character then local m=mt.Character:FindFirstChild("Humanoid") st.Text=m and "🎯 "..mt.DisplayName.." HP:"..math.floor(m.Health) or "Đợi..." end task.wait(0.5) end end)
