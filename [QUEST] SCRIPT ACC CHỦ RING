@@ -1,4 +1,4 @@
---code số 71: AUTO DUEL 1VS1 - ZONE RING - CHỈ CẦN CHỦ TRONG ZONE LÀ CLONE BUG
+--code số 71: AUTO DUEL 1VS1 - ZONE RING - CHỈ CẦN CHỦ TRONG ZONE -> CLONE BUG + SỬA REMOTE
 local player = game.Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 local UIS = game:GetService("UserInputService")
@@ -21,8 +21,9 @@ local mt = nil
 local chu = nil
 local daLayAvt = {}
 local daBug = false
+local lastRemote = 0
 
--- ==================== TRONG ZONE (HÌNH TRỤ) ====================
+-- ==================== TRONG ZONE ====================
 local function trongZone(pl)
     local c = pl and pl.Character
     if not c then return false end
@@ -49,11 +50,13 @@ end
 -- ==================== REMOTE ====================
 local function guiChallenge()
     if not mt then return end
-    DuelRemote:FireServer({[1]={TargetUserId=mt.UserId,Event="DuelRequest",Action="Challenge"}})
+    local args = {[1] = {TargetUserId = mt.UserId, Event = "DuelRequest", Action = "Challenge"}}
+    DuelRemote:FireServer(unpack(args))
 end
 local function guiAccept()
     if not chu then return end
-    DuelRemote:FireServer({[1]={ChallengerUserId=chu.UserId,Event="DuelRequest",Action="Accept"}})
+    local args = {[1] = {ChallengerUserId = chu.UserId, Event = "DuelRequest", Action = "Accept"}}
+    DuelRemote:FireServer(unpack(args))
 end
 
 -- ==================== BUG ====================
@@ -71,31 +74,45 @@ local function bugXuongVoid()
 end
 
 -- ==================== VÒNG LẶP ====================
--- CLONE: Chỉ cần CHỦ trong zone -> bug
+-- CLONE: Chỉ cần CHỦ trong zone -> bug. NGOÀI zone -> accept mỗi 2s
 local function vongLapClone()
     while chay do
         if not chu then task.wait(0.5) daBug = false continue end
         if trongZone(chu) then
+            -- CHỦ trong zone -> bug ngay
             if not daBug then daBug = bugXuongVoid() end
             task.wait(0.3)
         else
+            -- CHỦ ngoài zone -> accept liên tục
             daBug = false
-            guiAccept()
-            task.wait(2)
+            if tick() - lastRemote >= 2 then
+                guiAccept()
+                lastRemote = tick()
+            end
+            task.wait(0.2)
         end
     end
 end
 
--- CHỦ: Ngoài zone gửi challenge, trong zone không spam
+-- CHỦ: NGOÀI zone -> challenge mỗi 3s, TRONG zone -> không spam
 local function vongLapChu()
     while chay do
         if not mt then task.wait(0.5) continue end
-        if trongZone(player) then task.wait(0.5)
-        else guiChallenge() task.wait(3) end
+        if trongZone(player) then
+            -- Trong zone -> không làm gì
+            task.wait(0.5)
+        else
+            -- Ngoài zone -> challenge
+            if tick() - lastRemote >= 3 then
+                guiChallenge()
+                lastRemote = tick()
+            end
+            task.wait(0.2)
+        end
     end
 end
 
--- ==================== GUI (GIỮ NGUYÊN) ====================
+-- ==================== GUI ====================
 local gui=Instance.new("ScreenGui") gui.Name="DUEL_MAIN" gui.ResetOnSpawn=false gui.Parent=PlayerGui
 local kc=Instance.new("Frame") kc.Size=UDim2.new(0,220,0,150) kc.Position=UDim2.new(0.5,-110,0.5,-75) kc.BackgroundColor3=Color3.fromRGB(12,12,20) kc.BorderSizePixel=0 kc.Active=true kc.Parent=gui
 Instance.new("UICorner",kc).CornerRadius=UDim.new(0,12) Instance.new("UIStroke",kc).Color=Color3.fromRGB(255,255,255) Instance.new("UIStroke",kc).Thickness=1.5
@@ -140,8 +157,8 @@ end
 Players.PlayerAdded:Connect(function() if km.Visible then updList() end end)
 Players.PlayerRemoving:Connect(function(pl) daLayAvt[pl.UserId]=nil if mt==pl then mt=nil end if chu==pl then chu=nil end if km.Visible then updList() end end)
 
-b1.MouseButton1Click:Connect(function() vai="chu" tt.Text="👑 CHỦ - DUEL" kc.Visible=false km.Visible=true updList() end)
-b2.MouseButton1Click:Connect(function() vai="clone" tt.Text="🤖 CLONE - BUG" kc.Visible=false km.Visible=true updList() end)
+b1.MouseButton1Click:Connect(function() vai="chu" tt.Text="👑 CHỦ" kc.Visible=false km.Visible=true updList() end)
+b2.MouseButton1Click:Connect(function() vai="clone" tt.Text="🤖 CLONE" kc.Visible=false km.Visible=true updList() end)
 nMin.MouseButton1Click:Connect(function() sf.Visible=not sf.Visible nStart.Visible=not nStart.Visible st.Visible=not st.Visible stZone.Visible=not stZone.Visible km.Size=sf.Visible and UDim2.new(0,230,0,340) or UDim2.new(0,230,0,34) end)
 nX.MouseButton1Click:Connect(function() pop.Visible=true end)
 pY.MouseButton1Click:Connect(function() chay=false gui:Destroy() end)
@@ -150,10 +167,9 @@ nStart.MouseButton1Click:Connect(function()
     if not chay then
         if vai=="chu" and not mt then st.Text="⚠️ Chưa chọn target!" return end
         if vai=="clone" and not chu then st.Text="⚠️ Chưa chọn chủ!" return end
-        chay=true daBug=false nStart.Text="⏸ DỪNG" nStart.BackgroundColor3=Color3.fromRGB(200,40,40)
-        if vai=="chu" then st.Text="⏳ Đợi vào zone..." task.spawn(vongLapChu)
-        else st.Text="🟢 Đợi..." task.spawn(vongLapClone) end
-    else chay=false nStart.Text="▶ START" nStart.BackgroundColor3=Color3.fromRGB(0,150,70) st.Text="⏸ Đã dừng" end
+        chay=true daBug=false lastRemote=0 nStart.Text="⏸ DỪNG" nStart.BackgroundColor3=Color3.fromRGB(200,40,40)
+        if vai=="chu" then task.spawn(vongLapChu) else task.spawn(vongLapClone) end
+    else chay=false nStart.Text="▶ START" nStart.BackgroundColor3=Color3.fromRGB(0,150,70) end
 end)
 
 local function drag(k)
@@ -170,14 +186,12 @@ task.spawn(function()
             local tz = trongZone(player)
             local other = (vai=="chu" and mt) or (vai=="clone" and chu)
             local dz = other and trongZone(other)
-            local chuTx = vai=="chu" and "CHỦ" or "CLONE"
-            local dichTx = vai=="chu" and "CLONE" or "CHỦ"
-            stZone.Text = string.format("📍 %s: %s | %s: %s\n⚔️ %s",
-                chuTx, tz and "✅ TRONG" or "❌ NGOÀI",
-                dichTx, dz and "✅ TRONG" or "❌ NGOÀI",
-                (vai=="clone" and dz) and "💀 CHỦ VÀO ZONE -> BUG" or "⏳ ĐỢI...")
-            if vai=="chu" then st.Text = tz and "✅ Trong zone" or "⏳ Đợi vào zone..."
-            else st.Text = dz and (daBug and "💀 ĐÃ BUG" or "💀 ĐANG BUG...") or "🟢 Đợi chủ..." end
+            stZone.Text = string.format("📍 TÔI: %s | ĐỐI THỦ: %s\n%s",
+                tz and "✅ TRONG" or "❌ NGOÀI",
+                dz and "✅ TRONG" or "❌ NGOÀI",
+                (vai=="clone" and dz) and "💀 CHỦ VÀO ZONE -> BUG" or ((vai=="chu" and tz) and "✅ TRONG ZONE" or "⏳ ĐỢI..."))
+            if vai=="clone" then st.Text = dz and (daBug and "💀 ĐÃ BUG" or "💀 ĐANG BUG...") or "🟢 Đợi chủ..."
+            else st.Text = tz and "✅ Trong zone" or "⏳ Đợi..." end
         end
         task.wait(0.3)
     end
