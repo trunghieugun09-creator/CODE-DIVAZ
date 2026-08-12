@@ -1,771 +1,169 @@
--- code số 63: AUTO DUEL 1VS1 - MƯỢT KHÔNG LAG (FULL FIXED)
+--code số 67: AUTO DUEL 1VS1 - TÍN HIỆU ẨN QUA ATTRIBUTE - SIÊU MƯỢT
 local player = game.Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
-pcall(function()
-    if PlayerGui:FindFirstChild("DUEL_MAIN") then PlayerGui.DUEL_MAIN:Destroy() end
-end)
+pcall(function() if PlayerGui:FindFirstChild("DUEL_MAIN") then PlayerGui.DUEL_MAIN:Destroy() end end)
 
-local TOADO = Vector3.new(563.2, 3.9, -20.8)
 local Remote = game:GetService("ReplicatedStorage"):WaitForChild("DuelRemote")
-local TIN_HIEU_Y = 999.99
 
 local vai = nil
 local chay = false
 local mt = nil
 local chu = nil
-local tinHieu = false
 local dangDanh = false
 local dangDi = false
 local tvuDi = nil
-local ringEnabled = false
+local daLayAvt = {}
 
--- ==================== RING SYSTEM (CHỈ ACTIVE KHI Ở TRONG RING) ====================
-local function trongRing()
-    local c = player.Character
-    if not c then return false end
-    local hrp = c:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-    
-    -- Kiểm tra nếu đang ở gần spawn
-    if (hrp.Position - TOADO).Magnitude < 20 then
-        return true
-    end
-    return false
-end
-
-local function fixSpawn()
-    if not trongRing() then return end
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.ClassName == "SpawnLocation" or obj.Name == "Spawn1" or obj.Name == "Spawn2" then
-            if obj.ClassName == "SpawnLocation" then
-                obj.Duration = 0
-            end
-            if obj:IsA("BasePart") or obj:IsA("MeshPart") or obj.ClassName == "SpawnLocation" then
-                obj.CFrame = CFrame.new(TOADO)
-                obj.Velocity = Vector3.zero
-                obj.Anchored = true
-            end
-        end
-    end
-end
-
--- Fix spawn mỗi frame NHƯNG CHỈ KHI Ở TRONG RING
-RunService.RenderStepped:Connect(function()
-    if not ringEnabled then return end
-    if trongRing() then
-        fixSpawn()
-    end
-end)
-
--- Kéo nhân vật về đúng vị trí NHƯNG CHỈ KHI Ở TRONG RING
-RunService.RenderStepped:Connect(function()
-    if not ringEnabled then return end
-    if not trongRing() then return end
-    
-    local char = player.Character
-    if char then
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local dist = (hrp.Position - TOADO).Magnitude
-            if dist > 5 then
-                hrp.CFrame = CFrame.new(TOADO)
-                hrp.Velocity = Vector3.zero
-            end
-        end
-    end
-end)
-
--- CharacterAdded
-player.CharacterAdded:Connect(function(char)
-    task.wait(0.2)
-    if ringEnabled and trongRing() then
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.CFrame = CFrame.new(TOADO)
-            hrp.Velocity = Vector3.zero
-        end
-    end
-end)
-
--- DescendantAdded
-workspace.DescendantAdded:Connect(function(obj)
-    if not ringEnabled then return end
-    if not trongRing() then return end
-    
-    if obj.ClassName == "SpawnLocation" or obj.Name == "Spawn1" or obj.Name == "Spawn2" then
-        if obj.ClassName == "SpawnLocation" then obj.Duration = 0 end
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") or obj.ClassName == "SpawnLocation" then
-            obj.Anchored = true
-            obj.CFrame = CFrame.new(TOADO)
-            obj.Velocity = Vector3.zero
-        end
-    end
-end)
-
--- ==================== COMBAT (OPTIMIZED) ====================
+-- ==================== COMBAT ====================
 local function bam(key)
-    pcall(function() 
-        VirtualInputManager:SendKeyEvent(true, key, false, game) 
-        task.wait(0.01) 
-        VirtualInputManager:SendKeyEvent(false, key, false, game) 
-    end)
+    pcall(function() VirtualInputManager:SendKeyEvent(true,key,false,game) task.wait(0.01) VirtualInputManager:SendKeyEvent(false,key,false,game) end)
 end
-
 local function layTool()
-    local c = player.Character 
-    local bp = player:FindFirstChild("Backpack")
-    if c then 
-        for _, v in c:GetChildren() do 
-            if v:IsA("Tool") and (v.Name:lower():find("nails") or v.Name == "Fist") then 
-                return v 
-            end 
-        end 
-    end
-    if bp then 
-        for _, v in bp:GetChildren() do 
-            if v:IsA("Tool") and (v.Name:lower():find("nails") or v.Name == "Fist") then 
-                return v 
-            end 
-        end 
-    end
+    local c=player.Character local bp=player:FindFirstChild("Backpack")
+    if c then for _,v in c:GetChildren() do if v:IsA("Tool") and (v.Name:lower():find("nails") or v.Name=="Fist") then return v end end end
+    if bp then for _,v in bp:GetChildren() do if v:IsA("Tool") and (v.Name:lower():find("nails") or v.Name=="Fist") then return v end end end
     return nil
 end
-
 local function danh()
-    local t = layTool()
-    if t then
-        if t.Parent ~= player.Character then
-            local h = player.Character and player.Character:FindFirstChild("Humanoid")
-            if h then 
-                pcall(function() h:EquipTool(t) end)
-                task.wait(0.02) 
-            end
-        end
-        pcall(function() t:Activate() end)
-    end
+    local t=layTool()
+    if t then if t.Parent~=player.Character then local h=player.Character and player.Character:FindFirstChild("Humanoid") if h then h:EquipTool(t) task.wait(0.02) end end pcall(function() t:Activate() end) end
 end
-
-local function tom() 
-    pcall(function() bam(Enum.KeyCode.G) end) 
-end
-
-local function stomp() 
-    pcall(function() 
-        bam(Enum.KeyCode.E) 
-        task.wait(0.05)
-        danh() 
-    end) 
-end
-
-local function dungDi() 
-    dangDi = false 
-    if tvuDi then 
-        task.cancel(tvuDi) 
-        tvuDi = nil 
-    end 
-end
-
+local function tom() bam(Enum.KeyCode.G) end
+local function stomp() bam(Enum.KeyCode.E) danh() end
+local function dungDi() dangDi=false if tvuDi then task.cancel(tvuDi) tvuDi=nil end end
 local function diDen(dich)
-    dungDi() 
-    dangDi = true
-    tvuDi = task.spawn(function()
-        local c = player.Character
-        local h = c and c:FindFirstChild("Humanoid")
-        local r = c and c:FindFirstChild("HumanoidRootPart")
-        if not h or not r then dangDi = false return end
-        
-        h.WalkSpeed = 20
-        local count = 0
+    dungDi() dangDi=true tvuDi=task.spawn(function()
+        local c,h,r=player.Character,nil,nil if c then h=c:FindFirstChild("Humanoid") r=c:FindFirstChild("HumanoidRootPart") end
+        if not h or not r then dangDi=false return end h.WalkSpeed=20
         while chay and dangDi and r and r.Parent and dich and dich.Parent do
-            count = count + 1
-            if count > 100 then break end
-            local dist = (r.Position - dich.Position).Magnitude
-            if dist <= 4 then break end
-            
-            pcall(function()
-                r.CFrame = CFrame.lookAt(r.Position, Vector3.new(dich.Position.X, r.Position.Y, dich.Position.Z))
-                h:MoveTo(dich.Position)
-            end)
-            task.wait(0.05)
-        end
-        dangDi = false 
-        tvuDi = nil
+            if (r.Position-dich.Position).Magnitude<=4 then break end
+            r.CFrame=CFrame.lookAt(r.Position,Vector3.new(dich.Position.X,r.Position.Y,dich.Position.Z)) h:MoveTo(dich.Position) task.wait(0.05)
+        end dangDi=false tvuDi=nil
     end)
 end
-
 local function lui(dich)
-    dungDi() 
-    dangDi = true
-    tvuDi = task.spawn(function()
-        local c = player.Character
-        local h = c and c:FindFirstChild("Humanoid")
-        local r = c and c:FindFirstChild("HumanoidRootPart")
-        if not h or not r then dangDi = false return end
-        
-        h.WalkSpeed = 20
-        local huong = (r.Position - dich.Position).Unit
-        if huong.Magnitude < 0.01 then huong = Vector3.new(0, 0, -1) end
-        local vt = r.Position + huong * 3
-        
-        local count = 0
-        while chay and dangDi and r and r.Parent do
-            count = count + 1
-            if count > 100 then break end
-            if (r.Position - vt).Magnitude <= 0.5 then break end
-            
-            pcall(function() h:MoveTo(vt) end)
-            task.wait(0.05)
-        end
-        dangDi = false 
-        tvuDi = nil
+    dungDi() dangDi=true tvuDi=task.spawn(function()
+        local c,h,r=player.Character,nil,nil if c then h=c:FindFirstChild("Humanoid") r=c:FindFirstChild("HumanoidRootPart") end
+        if not h or not r then dangDi=false return end h.WalkSpeed=20
+        local huong=(r.Position-dich.Position).Unit if huong.Magnitude<0.01 then huong=Vector3.new(0,0,-1) end
+        local vt=r.Position+huong*3
+        while chay and dangDi and r and r.Parent do if (r.Position-vt).Magnitude<=0.5 then break end h:MoveTo(vt) task.wait(0.05) end
+        dangDi=false tvuDi=nil
     end)
 end
-
 local function combat()
-    local lastAttack = 0
-    local attackCooldown = 0.2
-    
-    while chay do 
-        task.wait(0.1)
-        
-        local dt = vai == "chu" and mt or chu
-        if not dt or not dt.Character then 
-            continue 
-        end
-        
-        local dich = dt.Character:FindFirstChild("HumanoidRootPart")
-        local mau = dt.Character:FindFirstChild("Humanoid")
-        if not dich or not mau or mau.Health <= 0 then 
-            continue 
-        end
-        
-        local r = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if not r then 
-            continue 
-        end
-        
-        local kc = (r.Position - dich.Position).Magnitude
-        local now = tick()
-        
-        if now - lastAttack < attackCooldown then
-            continue
-        end
-        
-        if mau.Health < 3 then
-            if kc > 4 then 
-                dangDanh = true 
-                if not dangDi then diDen(dich) end
-            elseif kc < 1 then 
-                dangDanh = true 
-                if not dangDi then lui(dich) end
-            else 
-                dungDi() 
-                dangDanh = true 
-                pcall(stomp) 
-                lastAttack = now
-            end
-        else
-            if kc > 4 then 
-                dangDanh = true 
-                if not dangDi then diDen(dich) end
-            elseif kc < 1 then 
-                dangDanh = true 
-                if not dangDi then lui(dich) end
-            else 
-                dungDi() 
-                dangDanh = true 
-                pcall(danh) 
-                pcall(tom)
-                lastAttack = now
-            end
-        end
+    while chay do task.wait(0.05)
+        local dt=vai=="chu" and mt or chu
+        if not dt or not dt.Character then continue end
+        local dich=dt.Character:FindFirstChild("HumanoidRootPart") local mau=dt.Character:FindFirstChild("Humanoid")
+        if not dich or not mau or mau.Health<=0 then continue end
+        local r=player.Character and player.Character:FindFirstChild("HumanoidRootPart") if not r then continue end
+        local kc=(r.Position-dich.Position).Magnitude
+        if mau.Health<3 then if kc>4 then dangDanh=true if not dangDi then diDen(dich) end elseif kc<1 then dangDanh=true if not dangDi then lui(dich) end else dungDi() dangDanh=true stomp() end
+        else if kc>4 then dangDanh=true if not dangDi then diDen(dich) end elseif kc<1 then dangDanh=true if not dangDi then lui(dich) end else dungDi() dangDanh=true danh() tom() end end
     end
 end
 
--- ==================== REMOTE (FIXED FORMAT) ====================
-local function guiChallenge()
-    if not mt then return end
-    pcall(function()
-        local args = {
-            [1] = {
-                TargetUserId = mt.UserId,
-                Event = "DuelRequest",
-                Action = "Challenge"
-            }
-        }
-        Remote:FireServer(unpack(args))
-    end)
-end
+-- ==================== REMOTE ====================
+local function guiChallenge() if mt then Remote:FireServer({[1]={TargetUserId=mt.UserId,Event="DuelRequest",Action="Challenge"}}) end end
+local function guiAccept() if chu then Remote:FireServer({[1]={ChallengerUserId=chu.UserId,Event="DuelRequest",Action="Accept"}}) end end
 
-local function guiAccept()
-    if not chu then return end
-    pcall(function()
-        local args = {
-            [1] = {
-                ChallengerUserId = chu.UserId,
-                Event = "DuelRequest",
-                Action = "Accept"
-            }
-        }
-        Remote:FireServer(unpack(args))
-    end)
-end
-
+-- ==================== TÍN HIỆU ẨN QUA ATTRIBUTE ====================
 local function guiTinHieu()
-    local c = player.Character
-    if c then
-        local hrp = c:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            pcall(function() 
-                hrp.CFrame = CFrame.new(TOADO.X, TIN_HIEU_Y, TOADO.Z) 
-                task.wait(0.15)
-                hrp.CFrame = CFrame.new(TOADO) 
-            end)
-        end
-    end
+    local c=player.Character if not c then return end
+    local hrp=c:FindFirstChild("HumanoidRootPart") if not hrp then return end
+    pcall(function() hrp:SetAttribute("DuelSignal",tick()) end)
+    task.delay(0.5,function() pcall(function() hrp:SetAttribute("DuelSignal",nil) end) end)
+end
+
+local function nhanTinHieu()
+    if not chu or not chu.Character then return false end
+    local hrp=chu.Character:FindFirstChild("HumanoidRootPart") if not hrp then return false end
+    local signal=hrp:GetAttribute("DuelSignal")
+    return signal and tonumber(signal) and tick()-tonumber(signal)<1
 end
 
 -- ==================== GUI ====================
-local gui = Instance.new("ScreenGui") 
-gui.Name = "DUEL_MAIN" 
-gui.ResetOnSpawn = false 
-gui.Parent = PlayerGui
+local gui=Instance.new("ScreenGui") gui.Name="DUEL_MAIN" gui.ResetOnSpawn=false gui.Parent=PlayerGui
+local kc=Instance.new("Frame") kc.Size=UDim2.new(0,220,0,150) kc.Position=UDim2.new(0.5,-110,0.5,-75) kc.BackgroundColor3=Color3.fromRGB(12,12,20) kc.BorderSizePixel=0 kc.Active=true kc.Parent=gui
+Instance.new("UICorner",kc).CornerRadius=UDim.new(0,12) local vc=Instance.new("UIStroke",kc) vc.Color=Color3.fromRGB(255,255,255) vc.Thickness=1.5
+local t1=Instance.new("TextLabel") t1.Size=UDim2.new(1,0,0,30) t1.Text="⚔️ CHỌN VAI TRÒ" t1.TextColor3=Color3.new(1,1,1) t1.Font=Enum.Font.GothamBold t1.TextSize=14 t1.BackgroundTransparency=1 t1.Parent=kc
+local b1=Instance.new("TextButton") b1.Size=UDim2.new(0.7,0,0,36) b1.Position=UDim2.new(0.15,0,0,40) b1.BackgroundColor3=Color3.fromRGB(0,140,70) b1.Text="👑 CHỦ" b1.TextColor3=Color3.new(1,1,1) b1.Font=Enum.Font.GothamBold b1.TextSize=14 b1.Parent=kc Instance.new("UICorner",b1).CornerRadius=UDim.new(0,8)
+local b2=Instance.new("TextButton") b2.Size=UDim2.new(0.7,0,0,36) b2.Position=UDim2.new(0.15,0,0,85) b2.BackgroundColor3=Color3.fromRGB(0,90,180) b2.Text="🤖 CLONE" b2.TextColor3=Color3.new(1,1,1) b2.Font=Enum.Font.GothamBold b2.TextSize=14 b2.Parent=kc Instance.new("UICorner",b2).CornerRadius=UDim.new(0,8)
 
--- KHUNG CHỌN
-local kc = Instance.new("Frame") 
-kc.Size = UDim2.new(0, 220, 0, 150) 
-kc.Position = UDim2.new(0.5, -110, 0.5, -75) 
-kc.BackgroundColor3 = Color3.fromRGB(12, 12, 20) 
-kc.BorderSizePixel = 0 
-kc.Active = true 
-kc.Parent = gui
-Instance.new("UICorner", kc).CornerRadius = UDim.new(0, 12)
-Instance.new("UIStroke", kc).Color = Color3.fromRGB(255, 255, 255) 
-Instance.new("UIStroke", kc).Thickness = 1.5
+local km=Instance.new("Frame") km.Size=UDim2.new(0,230,0,310) km.Position=UDim2.new(0.5,-115,0.5,-155) km.BackgroundColor3=Color3.fromRGB(12,12,20) km.BorderSizePixel=0 km.Visible=false km.Active=true km.Parent=gui
+Instance.new("UICorner",km).CornerRadius=UDim.new(0,12) local vm=Instance.new("UIStroke",km) vm.Color=Color3.fromRGB(255,255,255) vm.Thickness=1.5
+local top=Instance.new("Frame") top.Size=UDim2.new(1,0,0,34) top.BackgroundColor3=Color3.fromRGB(20,20,30) top.BorderSizePixel=0 top.Parent=km Instance.new("UICorner",top).CornerRadius=UDim.new(0,12)
+local tt=Instance.new("TextLabel") tt.Size=UDim2.new(0.5,0,1,0) tt.Position=UDim2.new(0,12,0,0) tt.Text="DUEL" tt.TextColor3=Color3.new(1,1,1) tt.Font=Enum.Font.GothamBold tt.TextSize=13 tt.BackgroundTransparency=1 tt.TextXAlignment=Enum.TextXAlignment.Left tt.Parent=top
+local nMin=Instance.new("TextButton") nMin.Size=UDim2.new(0,22,0,22) nMin.Position=UDim2.new(1,-52,0.5,-11) nMin.Text="—" nMin.TextColor3=Color3.new(1,1,1) nMin.BackgroundColor3=Color3.fromRGB(90,90,110) nMin.Font=Enum.Font.GothamBold nMin.TextSize=13 nMin.Parent=top Instance.new("UICorner",nMin).CornerRadius=UDim.new(0,5)
+local nX=Instance.new("TextButton") nX.Size=UDim2.new(0,22,0,22) nX.Position=UDim2.new(1,-24,0.5,-11) nX.Text="✕" nX.TextColor3=Color3.new(1,1,1) nX.BackgroundColor3=Color3.fromRGB(210,40,40) nX.Font=Enum.Font.GothamBold nX.TextSize=13 nX.Parent=top Instance.new("UICorner",nX).CornerRadius=UDim.new(0,5)
 
-local t1 = Instance.new("TextLabel") 
-t1.Size = UDim2.new(1, 0, 0, 30) 
-t1.Text = "⚔️ CHỌN VAI TRÒ" 
-t1.TextColor3 = Color3.new(1, 1, 1) 
-t1.Font = Enum.Font.GothamBold 
-t1.TextSize = 14 
-t1.BackgroundTransparency = 1 
-t1.Parent = kc
+local sf=Instance.new("ScrollingFrame") sf.Size=UDim2.new(1,-12,0,190) sf.Position=UDim2.new(0,6,0,38) sf.BackgroundColor3=Color3.fromRGB(16,16,24) sf.BorderSizePixel=0 sf.ScrollBarThickness=3 sf.ClipsDescendants=true sf.CanvasSize=UDim2.new(0,0,0,0) sf.Parent=km Instance.new("UICorner",sf).CornerRadius=UDim.new(0,8)
+local lay=Instance.new("UIListLayout") lay.Padding=UDim.new(0,2) lay.Parent=sf
 
-local b1 = Instance.new("TextButton") 
-b1.Size = UDim2.new(0.7, 0, 0, 36) 
-b1.Position = UDim2.new(0.15, 0, 0, 40) 
-b1.BackgroundColor3 = Color3.fromRGB(0, 140, 70) 
-b1.Text = "👑 CHỦ" 
-b1.TextColor3 = Color3.new(1, 1, 1) 
-b1.Font = Enum.Font.GothamBold 
-b1.TextSize = 14 
-b1.Parent = kc
-Instance.new("UICorner", b1).CornerRadius = UDim.new(0, 8)
+local st=Instance.new("TextLabel") st.Size=UDim2.new(1,0,0,18) st.Position=UDim2.new(0,0,1,-50) st.Text="Sẵn sàng" st.TextColor3=Color3.new(0.7,0.7,0.7) st.BackgroundTransparency=1 st.Font=Enum.Font.GothamBold st.TextSize=10 st.TextXAlignment=Enum.TextXAlignment.Center st.Parent=km
+local nStart=Instance.new("TextButton") nStart.Size=UDim2.new(0.7,0,0,32) nStart.Position=UDim2.new(0.15,0,1,-36) nStart.BackgroundColor3=Color3.fromRGB(0,150,70) nStart.Text="▶ START" nStart.TextColor3=Color3.new(1,1,1) nStart.Font=Enum.Font.GothamBold nStart.TextSize=13 nStart.Parent=km Instance.new("UICorner",nStart).CornerRadius=UDim.new(0,7)
 
-local b2 = Instance.new("TextButton") 
-b2.Size = UDim2.new(0.7, 0, 0, 36) 
-b2.Position = UDim2.new(0.15, 0, 0, 85) 
-b2.BackgroundColor3 = Color3.fromRGB(0, 90, 180) 
-b2.Text = "🤖 CLONE" 
-b2.TextColor3 = Color3.new(1, 1, 1) 
-b2.Font = Enum.Font.GothamBold 
-b2.TextSize = 14 
-b2.Parent = kc
-Instance.new("UICorner", b2).CornerRadius = UDim.new(0, 8)
+local pop=Instance.new("Frame") pop.Size=UDim2.new(0,190,0,80) pop.Position=UDim2.new(0.5,-95,0.5,-40) pop.BackgroundColor3=Color3.fromRGB(22,22,32) pop.BorderSizePixel=0 pop.Visible=false pop.Parent=gui Instance.new("UICorner",pop).CornerRadius=UDim.new(0,10) local vp=Instance.new("UIStroke",pop) vp.Color=Color3.fromRGB(255,255,255) vp.Thickness=1.5
+local pt=Instance.new("TextLabel") pt.Size=UDim2.new(1,0,0,24) pt.Position=UDim2.new(0,0,0,6) pt.Text="Xác nhận đóng?" pt.TextColor3=Color3.new(1,1,1) pt.Font=Enum.Font.GothamBold pt.TextSize=13 pt.BackgroundTransparency=1 pt.Parent=pop
+local pY=Instance.new("TextButton") pY.Size=UDim2.new(0.35,0,0,26) pY.Position=UDim2.new(0.1,0,0,42) pY.BackgroundColor3=Color3.fromRGB(200,40,40) pY.Text="Đóng" pY.TextColor3=Color3.new(1,1,1) pY.Font=Enum.Font.GothamBold pY.TextSize=11 pY.Parent=pop Instance.new("UICorner",pY).CornerRadius=UDim.new(0,5)
+local pN=Instance.new("TextButton") pN.Size=UDim2.new(0.35,0,0,26) pN.Position=UDim2.new(0.55,0,0,42) pN.BackgroundColor3=Color3.fromRGB(70,70,90) pN.Text="Hủy" pN.TextColor3=Color3.new(1,1,1) pN.Font=Enum.Font.GothamBold pN.TextSize=11 pN.Parent=pop Instance.new("UICorner",pN).CornerRadius=UDim.new(0,5)
 
--- KHUNG CHÍNH
-local km = Instance.new("Frame") 
-km.Size = UDim2.new(0, 230, 0, 310) 
-km.Position = UDim2.new(0.5, -115, 0.5, -155) 
-km.BackgroundColor3 = Color3.fromRGB(12, 12, 20) 
-km.BorderSizePixel = 0 
-km.Visible = false 
-km.Active = true 
-km.Parent = gui
-Instance.new("UICorner", km).CornerRadius = UDim.new(0, 12)
-Instance.new("UIStroke", km).Color = Color3.fromRGB(255, 255, 255) 
-Instance.new("UIStroke", km).Thickness = 1.5
-
-local top = Instance.new("Frame") 
-top.Size = UDim2.new(1, 0, 0, 34) 
-top.BackgroundColor3 = Color3.fromRGB(20, 20, 30) 
-top.BorderSizePixel = 0 
-top.Parent = km
-Instance.new("UICorner", top).CornerRadius = UDim.new(0, 12)
-
-local tt = Instance.new("TextLabel") 
-tt.Size = UDim2.new(0.5, 0, 1, 0) 
-tt.Position = UDim2.new(0, 12, 0, 0) 
-tt.Text = "DUEL" 
-tt.TextColor3 = Color3.new(1, 1, 1) 
-tt.Font = Enum.Font.GothamBold 
-tt.TextSize = 13 
-tt.BackgroundTransparency = 1 
-tt.TextXAlignment = Enum.TextXAlignment.Left 
-tt.Parent = top
-
-local nMin = Instance.new("TextButton") 
-nMin.Size = UDim2.new(0, 22, 0, 22) 
-nMin.Position = UDim2.new(1, -52, 0.5, -11) 
-nMin.Text = "—" 
-nMin.TextColor3 = Color3.new(1, 1, 1) 
-nMin.BackgroundColor3 = Color3.fromRGB(90, 90, 110) 
-nMin.Font = Enum.Font.GothamBold 
-nMin.TextSize = 13 
-nMin.Parent = top
-Instance.new("UICorner", nMin).CornerRadius = UDim.new(0, 5)
-
-local nX = Instance.new("TextButton") 
-nX.Size = UDim2.new(0, 22, 0, 22) 
-nX.Position = UDim2.new(1, -24, 0.5, -11) 
-nX.Text = "✕" 
-nX.TextColor3 = Color3.new(1, 1, 1) 
-nX.BackgroundColor3 = Color3.fromRGB(210, 40, 40) 
-nX.Font = Enum.Font.GothamBold 
-nX.TextSize = 13 
-nX.Parent = top
-Instance.new("UICorner", nX).CornerRadius = UDim.new(0, 5)
-
-local sf = Instance.new("ScrollingFrame") 
-sf.Size = UDim2.new(1, -12, 0, 190) 
-sf.Position = UDim2.new(0, 6, 0, 38) 
-sf.BackgroundColor3 = Color3.fromRGB(16, 16, 24) 
-sf.BorderSizePixel = 0 
-sf.ScrollBarThickness = 3 
-sf.ClipsDescendants = true 
-sf.CanvasSize = UDim2.new(0, 0, 0, 0) 
-sf.Parent = km
-Instance.new("UICorner", sf).CornerRadius = UDim.new(0, 8)
-
-local lay = Instance.new("UIListLayout") 
-lay.Padding = UDim.new(0, 2) 
-lay.Parent = sf
-
-local st = Instance.new("TextLabel") 
-st.Size = UDim2.new(1, 0, 0, 18) 
-st.Position = UDim2.new(0, 0, 1, -50) 
-st.Text = "Sẵn sàng" 
-st.TextColor3 = Color3.new(0.7, 0.7, 0.7) 
-st.BackgroundTransparency = 1 
-st.Font = Enum.Font.GothamBold 
-st.TextSize = 10 
-st.TextXAlignment = Enum.TextXAlignment.Center 
-st.Parent = km
-
-local nStart = Instance.new("TextButton") 
-nStart.Size = UDim2.new(0.7, 0, 0, 32) 
-nStart.Position = UDim2.new(0.15, 0, 1, -36) 
-nStart.BackgroundColor3 = Color3.fromRGB(0, 150, 70) 
-nStart.Text = "▶ START" 
-nStart.TextColor3 = Color3.new(1, 1, 1) 
-nStart.Font = Enum.Font.GothamBold 
-nStart.TextSize = 13 
-nStart.Parent = km
-Instance.new("UICorner", nStart).CornerRadius = UDim.new(0, 7)
-
--- POPUP ĐÓNG
-local pop = Instance.new("Frame") 
-pop.Size = UDim2.new(0, 190, 0, 80) 
-pop.Position = UDim2.new(0.5, -95, 0.5, -40) 
-pop.BackgroundColor3 = Color3.fromRGB(22, 22, 32) 
-pop.BorderSizePixel = 0 
-pop.Visible = false 
-pop.Parent = gui
-Instance.new("UICorner", pop).CornerRadius = UDim.new(0, 10)
-Instance.new("UIStroke", pop).Color = Color3.fromRGB(255, 255, 255) 
-Instance.new("UIStroke", pop).Thickness = 1.5
-
-local pt = Instance.new("TextLabel") 
-pt.Size = UDim2.new(1, 0, 0, 24) 
-pt.Position = UDim2.new(0, 0, 0, 6) 
-pt.Text = "Xác nhận đóng?" 
-pt.TextColor3 = Color3.new(1, 1, 1) 
-pt.Font = Enum.Font.GothamBold 
-pt.TextSize = 13 
-pt.BackgroundTransparency = 1 
-pt.Parent = pop
-
-local pY = Instance.new("TextButton") 
-pY.Size = UDim2.new(0.35, 0, 0, 26) 
-pY.Position = UDim2.new(0.1, 0, 0, 42) 
-pY.BackgroundColor3 = Color3.fromRGB(200, 40, 40) 
-pY.Text = "Đóng" 
-pY.TextColor3 = Color3.new(1, 1, 1) 
-pY.Font = Enum.Font.GothamBold 
-pY.TextSize = 11 
-pY.Parent = pop
-Instance.new("UICorner", pY).CornerRadius = UDim.new(0, 5)
-
-local pN = Instance.new("TextButton") 
-pN.Size = UDim2.new(0.35, 0, 0, 26) 
-pN.Position = UDim2.new(0.55, 0, 0, 42) 
-pN.BackgroundColor3 = Color3.fromRGB(70, 70, 90) 
-pN.Text = "Hủy" 
-pN.TextColor3 = Color3.new(1, 1, 1) 
-pN.Font = Enum.Font.GothamBold 
-pN.TextSize = 11 
-pN.Parent = pop
-Instance.new("UICorner", pN).CornerRadius = UDim.new(0, 5)
-
--- ==================== DANH SÁCH PLAYER (FIXED - KHÔNG LỖI) ====================
-local listUpdating = false
-
-local function updatePlayerList()
-    if listUpdating then return end
-    listUpdating = true
-    
-    for _, v in sf:GetChildren() do 
-        if v:IsA("Frame") then 
-            v:Destroy() 
-        end 
-    end
-    
-    local players = Players:GetPlayers()
-    local hasPlayers = false
-    
-    for _, pl in ipairs(players) do
-        if pl ~= player then
-            hasPlayers = true
-            local isSelected = (vai == "chu" and mt == pl) or (vai == "clone" and chu == pl)
-            
-            local d = Instance.new("Frame") 
-            d.Size = UDim2.new(1, -4, 0, 42) 
-            d.BackgroundColor3 = isSelected and Color3.fromRGB(80, 20, 130) or Color3.fromRGB(28, 28, 38) 
-            d.BorderSizePixel = 0 
-            d.Parent = sf
-            Instance.new("UICorner", d).CornerRadius = UDim.new(0, 7)
-            
-            local av = Instance.new("ImageLabel") 
-            av.Size = UDim2.new(0, 30, 0, 30) 
-            av.Position = UDim2.new(0, 5, 0.5, -15) 
-            av.BackgroundTransparency = 1 
-            av.Parent = d
-            Instance.new("UICorner", av).CornerRadius = UDim.new(0, 15)
-            pcall(function() 
-                av.Image = Players:GetUserThumbnailAsync(pl.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100) 
-            end)
-            
-            local tn = Instance.new("TextLabel") 
-            tn.Size = UDim2.new(0, 130, 0, 16) 
-            tn.Position = UDim2.new(0, 42, 0, 4) 
-            tn.Text = pl.DisplayName 
-            tn.TextColor3 = Color3.new(1, 1, 1) 
-            tn.Font = Enum.Font.GothamBold 
-            tn.TextSize = 11 
-            tn.BackgroundTransparency = 1 
-            tn.TextXAlignment = Enum.TextXAlignment.Left 
-            tn.Parent = d
-            
-            local ud = Instance.new("TextLabel") 
-            ud.Size = UDim2.new(0, 130, 0, 12) 
-            ud.Position = UDim2.new(0, 42, 0, 22) 
-            ud.Text = "UID: " .. pl.UserId 
-            ud.TextColor3 = Color3.fromRGB(140, 140, 160) 
-            ud.Font = Enum.Font.Gotham 
-            ud.TextSize = 8 
-            ud.BackgroundTransparency = 1 
-            ud.TextXAlignment = Enum.TextXAlignment.Left 
-            ud.Parent = d
-            
-            local ref = pl
-            d.InputBegan:Connect(function(inp)
-                if inp.UserInputType == Enum.UserInputType.Touch or inp.UserInputType == Enum.UserInputType.MouseButton1 then
-                    if vai == "chu" then 
-                        mt = ref 
-                    else 
-                        chu = ref 
-                    end
-                    updatePlayerList()
-                end
-            end)
+-- ==================== DANH SÁCH ====================
+local function updList()
+    for _,v in sf:GetChildren() do if v:IsA("Frame") then v:Destroy() end end
+    for _,pl in Players:GetPlayers() do
+        if pl~=player then
+            local sel=(vai=="chu" and mt==pl) or (vai=="clone" and chu==pl)
+            local d=Instance.new("Frame") d.Size=UDim2.new(1,-4,0,42) d.BackgroundColor3=sel and Color3.fromRGB(80,20,130) or Color3.fromRGB(28,28,38) d.BorderSizePixel=0 d.Parent=sf
+            Instance.new("UICorner",d).CornerRadius=UDim.new(0,7)
+            local av=Instance.new("ImageLabel") av.Size=UDim2.new(0,30,0,30) av.Position=UDim2.new(0,5,0.5,-15) av.BackgroundTransparency=1 av.Parent=d Instance.new("UICorner",av).CornerRadius=UDim.new(0,15)
+            if daLayAvt[pl.UserId] then av.Image=daLayAvt[pl.UserId]
+            else task.spawn(function() pcall(function() local img=Players:GetUserThumbnailAsync(pl.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100) daLayAvt[pl.UserId]=img av.Image=img end) end) end
+            local tn=Instance.new("TextLabel") tn.Size=UDim2.new(0,130,0,16) tn.Position=UDim2.new(0,42,0,4) tn.Text=pl.DisplayName tn.TextColor3=Color3.new(1,1,1) tn.Font=Enum.Font.GothamBold tn.TextSize=11 tn.BackgroundTransparency=1 tn.TextXAlignment=Enum.TextXAlignment.Left tn.Parent=d
+            local ud=Instance.new("TextLabel") ud.Size=UDim2.new(0,130,0,12) ud.Position=UDim2.new(0,42,0,22) ud.Text="UID: "..pl.UserId ud.TextColor3=Color3.fromRGB(140,140,160) ud.Font=Enum.Font.Gotham ud.TextSize=8 ud.BackgroundTransparency=1 ud.TextXAlignment=Enum.TextXAlignment.Left ud.Parent=d
+            local ref=pl d.InputBegan:Connect(function(inp) if inp.UserInputType==Enum.UserInputType.Touch or inp.UserInputType==Enum.UserInputType.MouseButton1 then if vai=="chu" then mt=ref else chu=ref end updList() end end)
         end
     end
-    
-    if not hasPlayers then
-        local empty = Instance.new("TextLabel")
-        empty.Size = UDim2.new(1, 0, 0, 30)
-        empty.Text = "⚠️ Không có người chơi"
-        empty.TextColor3 = Color3.fromRGB(200, 200, 200)
-        empty.Font = Enum.Font.Gotham
-        empty.TextSize = 11
-        empty.BackgroundTransparency = 1
-        empty.Parent = sf
-    end
-    
-    sf.CanvasSize = UDim2.new(0, 0, 0, math.max(lay.AbsoluteContentSize.Y + 4, 200))
-    listUpdating = false
+    sf.CanvasSize=UDim2.new(0,0,0,lay.AbsoluteContentSize.Y+4)
 end
-
-Players.PlayerAdded:Connect(function() 
-    task.wait(0.3)
-    if km.Visible then updatePlayerList() end 
-end)
-
-Players.PlayerRemoving:Connect(function(pl) 
-    if mt == pl then mt = nil end 
-    if chu == pl then chu = nil end 
-    task.wait(0.3)
-    if km.Visible then updatePlayerList() end 
-end)
+Players.PlayerAdded:Connect(function() if km.Visible then updList() end end)
+Players.PlayerRemoving:Connect(function(pl) daLayAvt[pl.UserId]=nil if mt==pl then mt=nil end if chu==pl then chu=nil end if km.Visible then updList() end end)
 
 -- ==================== SỰ KIỆN ====================
-b1.MouseButton1Click:Connect(function()
-    vai = "chu" 
-    tt.Text = "👑 CHỦ - DUEL"
-    kc.Visible = false 
-    km.Visible = true 
-    updatePlayerList()
-end)
-
-b2.MouseButton1Click:Connect(function()
-    vai = "clone" 
-    tt.Text = "🤖 CLONE - ACCEPT"
-    kc.Visible = false 
-    km.Visible = true 
-    updatePlayerList()
-end)
-
-nMin.MouseButton1Click:Connect(function()
-    sf.Visible = not sf.Visible 
-    nStart.Visible = not nStart.Visible 
-    st.Visible = not st.Visible
-    km.Size = sf.Visible and UDim2.new(0, 230, 0, 310) or UDim2.new(0, 230, 0, 34)
-end)
-
-nX.MouseButton1Click:Connect(function() 
-    pop.Visible = true 
-end)
-
-pY.MouseButton1Click:Connect(function() 
-    chay = false 
-    ringEnabled = false
-    dungDi() 
-    gui:Destroy() 
-end)
-
-pN.MouseButton1Click:Connect(function() 
-    pop.Visible = false 
-end)
-
--- START BUTTON
+b1.MouseButton1Click:Connect(function() vai="chu" tt.Text="👑 CHỦ - DUEL" kc.Visible=false km.Visible=true updList() end)
+b2.MouseButton1Click:Connect(function() vai="clone" tt.Text="🤖 CLONE - ACCEPT" kc.Visible=false km.Visible=true updList() end)
+nMin.MouseButton1Click:Connect(function() sf.Visible=not sf.Visible nStart.Visible=not nStart.Visible st.Visible=not st.Visible km.Size=sf.Visible and UDim2.new(0,230,0,310) or UDim2.new(0,230,0,34) end)
+nX.MouseButton1Click:Connect(function() pop.Visible=true end)
+pY.MouseButton1Click:Connect(function() chay=false dungDi() gui:Destroy() end)
+pN.MouseButton1Click:Connect(function() pop.Visible=false end)
 nStart.MouseButton1Click:Connect(function()
     if not chay then
-        if vai == "chu" and not mt then 
-            st.Text = "⚠️ Chưa chọn target!" 
-            return 
-        end
-        if vai == "clone" and not chu then 
-            st.Text = "⚠️ Chưa chọn chủ!" 
-            return 
-        end
-        
-        chay = true 
-        ringEnabled = true -- BẬT RING KHI START
-        nStart.Text = "⏸ DỪNG" 
-        nStart.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
-        
-        if vai == "chu" then
-            st.Text = "Đang gửi duel..."
-            task.spawn(function()
-                while chay do
-                    pcall(function()
-                        guiTinHieu() 
-                        task.wait(0.2) 
-                        guiChallenge() 
-                        task.wait(4)
-                    end)
-                    task.spawn(combat)
-                    
-                    while chay do
-                        task.wait(0.5)
-                        if mt and mt.Character then
-                            local m = mt.Character:FindFirstChild("Humanoid")
-                            if m and m.Health <= 0 then
-                                dangDanh = false 
-                                dungDi()
-                                task.wait(3)
-                                break
-                            end
-                        end
-                    end
-                end
+        if vai=="chu" and not mt then st.Text="⚠️ Chưa chọn target!" return end
+        if vai=="clone" and not chu then st.Text="⚠️ Chưa chọn chủ!" return end
+        chay=true nStart.Text="⏸ DỪNG" nStart.BackgroundColor3=Color3.fromRGB(200,40,40)
+        if vai=="chu" then st.Text="Đang gửi duel..."
+            task.spawn(function() guiTinHieu() task.wait(0.2) guiChallenge() task.wait(4) task.spawn(combat)
+                while chay do if mt and mt.Character then local m=mt.Character:FindFirstChild("Humanoid") if m and m.Health<=0 then dangDanh=false dungDi() task.wait(3) guiTinHieu() task.wait(0.2) guiChallenge() task.wait(4) end end task.wait(0.3) end
             end)
-        else
-            st.Text = "🟢 Đợi tín hiệu..."
-            task.spawn(function()
-                while chay do
-                    task.wait(0.3)
-                    if chu and chu.Character then
-                        local hrp = chu.Character:FindFirstChild("HumanoidRootPart")
-                        if hrp and math.abs(hrp.Position.Y - TIN_HIEU_Y) < 0.5 then
-                            st.Text = "📩 Nhận tín hiệu! Accept..."
-                            task.wait(0.3) 
-                            pcall(guiAccept)
-                            st.Text = "🟢 Đợi tín hiệu..."
-                        end
-                    end
-                end
-            end)
+        else st.Text="🟢 Đợi tín hiệu..."
+            task.spawn(function() while chay do if nhanTinHieu() then st.Text="📩 Nhận tín hiệu! Accept..." task.wait(0.3) guiAccept() st.Text="🟢 Đợi tín hiệu..." end task.wait(0.2) end end)
         end
-    else
-        chay = false 
-        ringEnabled = false -- TẮT RING KHI STOP
-        dungDi()
-        nStart.Text = "▶ START" 
-        nStart.BackgroundColor3 = Color3.fromRGB(0, 150, 70)
-        st.Text = "⏸ Đã dừng"
-    end
+    else chay=false dungDi() nStart.Text="▶ START" nStart.BackgroundColor3=Color3.fromRGB(0,150,70) st.Text="⏸ Đã dừng" end
 end)
 
 -- ==================== DRAG ====================
 local function drag(k)
-    local keo, dbd, vbd = nil, nil, nil
-    k.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.Touch or inp.UserInputType == Enum.UserInputType.MouseButton1 then
-            if keo then return end 
-            keo = inp 
-            dbd = inp.Position 
-            vbd = k.Position
-        end
-    end)
-    UIS.InputEnded:Connect(function(inp) 
-        if inp == keo then 
-            keo, dbd, vbd = nil, nil, nil 
-        end 
-    end)
-    UIS.InputChanged:Connect(function(inp)
-        if inp == keo then
-            local d = inp.Position - dbd
-            k.Position = UDim2.new(vbd.X.Scale, vbd.X.Offset + d.X, vbd.Y.Scale, vbd.Y.Offset + d.Y)
-        end
-    end)
+    local keo,dbd,vbd=nil,nil,nil
+    k.InputBegan:Connect(function(inp) if inp.UserInputType==Enum.UserInputType.Touch or inp.UserInputType==Enum.UserInputType.MouseButton1 then if keo then return end keo=inp dbd=inp.Position vbd=k.Position end end)
+    UIS.InputEnded:Connect(function(inp) if inp==keo then keo,dbd,vbd=nil,nil,nil end end)
+    UIS.InputChanged:Connect(function(inp) if inp==keo then local d=inp.Position-dbd k.Position=UDim2.new(vbd.X.Scale,vbd.X.Offset+d.X,vbd.Y.Scale,vbd.Y.Offset+d.Y) end end)
 end
-drag(kc) 
-drag(km)
+drag(kc) drag(km)
 
--- ==================== UPDATE STATUS ====================
-task.spawn(function()
-    while gui and gui.Parent do
-        task.wait(1)
-        pcall(function()
-            if chay and vai == "chu" and mt and mt.Character then
-                local m = mt.Character:FindFirstChild("Humanoid")
-                if m then
-                    st.Text = "🎯 " .. mt.DisplayName .. " HP:" .. math.floor(m.Health)
-                else
-                    st.Text = "Đợi..."
-                end
-            end
-        end)
-    end
-end)
-
-print("✅ AUTO DUEL 1VS1 - ĐÃ FIX FULL!")
-print("✅ CHỈ ACTIVE KHI Ở TRONG RING!")
-print("✅ KHÔNG BỊ GIẬT KHI RA NGOÀI!")
+-- Cập nhật trạng thái
+task.spawn(function() while gui and gui.Parent do if chay and vai=="chu" and mt and mt.Character then local m=mt.Character:FindFirstChild("Humanoid") st.Text=m and "🎯 "..mt.DisplayName.." HP:"..math.floor(m.Health) or "Đợi..." end task.wait(0.5) end end)
