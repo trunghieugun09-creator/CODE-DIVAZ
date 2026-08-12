@@ -1,17 +1,16 @@
---code số 71: AUTO DUEL 1VS1 - ZONE RING - QUÉT ZONE HÌNH TRỤ TỪ TRÊN XUỐNG
+--code số 71: AUTO DUEL 1VS1 - ZONE RING - CHỈ CẦN CHỦ TRONG ZONE LÀ BUG
 local player = game.Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
 pcall(function() if PlayerGui:FindFirstChild("DUEL_MAIN") then PlayerGui.DUEL_MAIN:Destroy() end end)
 
 local DuelRemote = game:GetService("ReplicatedStorage"):WaitForChild("DuelRemote")
 
 local ZONE_R = 19
-local ZONE_Y_MIN = -30  -- Quét từ Y này
-local ZONE_Y_MAX = 30   -- Đến Y này
+local ZONE_Y_MIN = -30
+local ZONE_Y_MAX = 30
 local ZONE_X = {0, 12, 0}
 local ZONE_Z = {-15, 7, 15}
 
@@ -22,18 +21,14 @@ local chu = nil
 local daLayAvt = {}
 local daBug = false
 
--- ==================== TRONG ZONE (HÌNH TRỤ) ====================
+-- ==================== TRONG ZONE ====================
 local function trongZone(pl)
     local c = pl and pl.Character
     if not c then return false end
     local hrp = c:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
     local pos = hrp.Position
-    
-    -- Kiểm tra Y trong khoảng
     if pos.Y < ZONE_Y_MIN or pos.Y > ZONE_Y_MAX then return false end
-    
-    -- Kiểm tra X,Z trong bán kính
     for i = 1, 3 do
         local ring = workspace:FindFirstChild("Ring" .. i)
         if ring and ring:IsA("Model") then
@@ -41,8 +36,9 @@ local function trongZone(pl)
             if pp then
                 local tamX = pp.Position.X + ZONE_X[i]
                 local tamZ = pp.Position.Z + ZONE_Z[i]
-                local dist = (Vector3.new(pos.X, 0, pos.Z) - Vector3.new(tamX, 0, tamZ)).Magnitude
-                if dist <= ZONE_R then return true end
+                if (Vector3.new(pos.X,0,pos.Z) - Vector3.new(tamX,0,tamZ)).Magnitude <= ZONE_R then
+                    return true
+                end
             end
         end
     end
@@ -52,16 +48,14 @@ end
 -- ==================== REMOTE ====================
 local function guiChallenge()
     if not mt then return end
-    local args = {[1] = {TargetUserId = mt.UserId, Event = "DuelRequest", Action = "Challenge"}}
-    DuelRemote:FireServer(unpack(args))
+    DuelRemote:FireServer({[1]={TargetUserId=mt.UserId,Event="DuelRequest",Action="Challenge"}})
 end
 local function guiAccept()
     if not chu then return end
-    local args = {[1] = {ChallengerUserId = chu.UserId, Event = "DuelRequest", Action = "Accept"}}
-    DuelRemote:FireServer(unpack(args))
+    DuelRemote:FireServer({[1]={ChallengerUserId=chu.UserId,Event="DuelRequest",Action="Accept"}})
 end
 
--- ==================== BUG XUỐNG VOID ====================
+-- ==================== BUG ====================
 local function bugXuongVoid()
     local c = player.Character
     if not c then return false end
@@ -76,11 +70,11 @@ local function bugXuongVoid()
 end
 
 -- ==================== VÒNG LẶP ====================
+-- CLONE: Chỉ cần CHỦ trong zone là bug
 local function vongLapClone()
     while chay do
         if not chu then task.wait(0.5) daBug = false continue end
-        local caHaiTrong = trongZone(player) and trongZone(chu)
-        if caHaiTrong then
+        if trongZone(chu) then
             if not daBug then daBug = bugXuongVoid() end
             task.wait(0.3)
         else
@@ -91,15 +85,12 @@ local function vongLapClone()
     end
 end
 
+-- CHỦ: Ngoài zone gửi challenge
 local function vongLapChu()
     while chay do
         if not mt then task.wait(0.5) continue end
-        if trongZone(player) and trongZone(mt) then
-            task.wait(0.5)
-        else
-            guiChallenge()
-            task.wait(3)
-        end
+        if trongZone(player) then task.wait(0.5)
+        else guiChallenge() task.wait(3) end
     end
 end
 
@@ -131,7 +122,6 @@ local pt=Instance.new("TextLabel") pt.Size=UDim2.new(1,0,0,24) pt.Position=UDim2
 local pY=Instance.new("TextButton") pY.Size=UDim2.new(0.35,0,0,26) pY.Position=UDim2.new(0.1,0,0,42) pY.BackgroundColor3=Color3.fromRGB(200,40,40) pY.Text="Đóng" pY.TextColor3=Color3.new(1,1,1) pY.Font=Enum.Font.GothamBold pY.TextSize=11 pY.Parent=pop Instance.new("UICorner",pY).CornerRadius=UDim.new(0,5)
 local pN=Instance.new("TextButton") pN.Size=UDim2.new(0.35,0,0,26) pN.Position=UDim2.new(0.55,0,0,42) pN.BackgroundColor3=Color3.fromRGB(70,70,90) pN.Text="Hủy" pN.TextColor3=Color3.new(1,1,1) pN.Font=Enum.Font.GothamBold pN.TextSize=11 pN.Parent=pop Instance.new("UICorner",pN).CornerRadius=UDim.new(0,5)
 
--- ==================== DANH SÁCH ====================
 local function updList()
     for _,v in sf:GetChildren() do if v:IsA("Frame") then v:Destroy() end end
     for _,pl in Players:GetPlayers() do if pl~=player then
@@ -149,8 +139,8 @@ end
 Players.PlayerAdded:Connect(function() if km.Visible then updList() end end)
 Players.PlayerRemoving:Connect(function(pl) daLayAvt[pl.UserId]=nil if mt==pl then mt=nil end if chu==pl then chu=nil end if km.Visible then updList() end end)
 
-b1.MouseButton1Click:Connect(function() vai="chu" tt.Text="👑 CHỦ - DUEL" kc.Visible=false km.Visible=true updList() end)
-b2.MouseButton1Click:Connect(function() vai="clone" tt.Text="🤖 CLONE - BUG" kc.Visible=false km.Visible=true updList() end)
+b1.MouseButton1Click:Connect(function() vai="chu" tt.Text="👑 CHỦ" kc.Visible=false km.Visible=true updList() end)
+b2.MouseButton1Click:Connect(function() vai="clone" tt.Text="🤖 CLONE" kc.Visible=false km.Visible=true updList() end)
 nMin.MouseButton1Click:Connect(function() sf.Visible=not sf.Visible nStart.Visible=not nStart.Visible st.Visible=not st.Visible stZone.Visible=not stZone.Visible km.Size=sf.Visible and UDim2.new(0,230,0,340) or UDim2.new(0,230,0,34) end)
 nX.MouseButton1Click:Connect(function() pop.Visible=true end)
 pY.MouseButton1Click:Connect(function() chay=false gui:Destroy() end)
@@ -160,8 +150,7 @@ nStart.MouseButton1Click:Connect(function()
         if vai=="chu" and not mt then st.Text="⚠️ Chưa chọn target!" return end
         if vai=="clone" and not chu then st.Text="⚠️ Chưa chọn chủ!" return end
         chay=true daBug=false nStart.Text="⏸ DỪNG" nStart.BackgroundColor3=Color3.fromRGB(200,40,40)
-        if vai=="chu" then st.Text="⏳ Đợi vào zone..." task.spawn(vongLapChu)
-        else st.Text="🟢 Đợi..." task.spawn(vongLapClone) end
+        if vai=="chu" then task.spawn(vongLapChu) else task.spawn(vongLapClone) end
     else chay=false nStart.Text="▶ START" nStart.BackgroundColor3=Color3.fromRGB(0,150,70) st.Text="⏸ Đã dừng" end
 end)
 
@@ -179,14 +168,12 @@ task.spawn(function()
             local tz = trongZone(player)
             local other = (vai=="chu" and mt) or (vai=="clone" and chu)
             local dz = other and trongZone(other)
-            local chuTx = vai=="chu" and "CHỦ" or "CLONE"
-            local dichTx = vai=="chu" and "CLONE" or "CHỦ"
-            stZone.Text = string.format("📍 %s: %s | %s: %s\n⚔️ %s",
-                chuTx, tz and "✅ TRONG" or "❌ NGOÀI",
-                dichTx, dz and "✅ TRONG" or "❌ NGOÀI",
-                (tz and dz) and "CẢ 2 TRONG ZONE" or "CHƯA ĐỦ")
-            if vai=="chu" then st.Text = (tz and dz) and "✅ CẢ 2 TRONG ZONE" or "⏳ Đợi clone..."
-            else st.Text = (tz and dz) and (daBug and "💀 ĐÃ BUG VOID" or "💀 ĐANG BUG...") or "🟢 Đợi..." end
+            stZone.Text = string.format("📍 TÔI: %s | ĐỐI THỦ: %s\n⚔️ %s",
+                tz and "✅ TRONG" or "❌ NGOÀI",
+                dz and "✅ TRONG" or "❌ NGOÀI",
+                (vai=="clone" and tz) and "💀 CHỦ TRONG ZONE -> BUG" or ((vai=="chu" and tz) and "✅ ĐANG TRONG ZONE" or "⏳ ĐỢI..."))
+            if vai=="clone" then st.Text = tz and (daBug and "💀 ĐÃ BUG" or "💀 ĐANG BUG...") or "🟢 Đợi chủ vào zone..."
+            else st.Text = tz and "✅ Trong zone" or "⏳ Đợi vào zone..." end
         end
         task.wait(0.3)
     end
