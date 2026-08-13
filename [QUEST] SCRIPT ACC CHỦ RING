@@ -53,23 +53,15 @@ local function guiAccept()
     DuelRemote:FireServer(unpack(args))
 end
 
--- Teleport xuống -1500 + set Humanoid.Health = 0 để chết ngay
+-- SỬA bugXuongVoid: Set Health = 0 trực tiếp
 local function bugXuongVoid()
     local c = player.Character
     if not c then return end
-    local hrp = c:FindFirstChild("HumanoidRootPart")
     local hum = c:FindFirstChild("Humanoid")
-    if not hrp then return end
+    if not hum then return end
     pcall(function()
-        hrp.Anchored = false
-        hrp.CFrame = CFrame.new(hrp.Position.X, -1500, hrp.Position.Z)
+        hum.Health = 0
     end)
-    task.wait(0.1)
-    if hum then
-        pcall(function()
-            hum.Health = 0
-        end)
-    end
 end
 
 -- ==================== VÒNG LẶP ====================
