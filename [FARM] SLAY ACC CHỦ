@@ -56,12 +56,12 @@ local function lay_tool_uu_tien()
     local bp = nguoi_choi:FindFirstChild("Backpack")
     if c then
         for _, v in pairs(c:GetChildren()) do
-            if v:IsA("Tool") and string.find(string.lower(v.Name), "Katana") then return v end
+            if v:IsA("Tool") and string.find(string.lower(v.Name), "Viper Bite Katana") then return v end
         end
     end
     if bp then
         for _, v in pairs(bp:GetChildren()) do
-            if v:IsA("Tool") and string.find(string.lower(v.Name), "Katana") then return v end
+            if v:IsA("Tool") and string.find(string.lower(v.Name), "Viper Bite Katana") then return v end
         end
     end
     if c then
