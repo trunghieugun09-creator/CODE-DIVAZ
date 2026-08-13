@@ -41,15 +41,27 @@ local function trongZone(pl)
     return false
 end
 
--- ==================== REMOTE ====================
-local function guiChallenge()
-    if not mt then return end
-    DuelRemote:FireServer({[1]={TargetUserId=mt.UserId,Event="DuelRequest",Action="Challenge"}})
-end
-local function guiAccept()
-    if not chu then return end
-    DuelRemote:FireServer({[1]={ChallengerUserId=chu.UserId,Event="DuelRequest",Action="Accept"}})
-end
+-- REMOTE ĐÚNG ĐỊNH DẠNG:
+
+-- CHỦ GỬI CHALLENGE:
+local args = {
+    [1] = {
+        ["TargetUserId"] = mt.UserId,
+        ["Event"] = "DuelRequest",
+        ["Action"] = "Challenge"
+    }
+}
+game:GetService("ReplicatedStorage").DuelRemote:FireServer(unpack(args))
+
+-- CLONE GỬI ACCEPT:
+local args = {
+    [1] = {
+        ["ChallengerUserId"] = chu.UserId,
+        ["Event"] = "DuelRequest",
+        ["Action"] = "Accept"
+    }
+}
+game:GetService("ReplicatedStorage").DuelRemote:FireServer(unpack(args))
 
 -- ==================== BUG LIÊN TỤC ====================
 local function bugXuongVoid()
