@@ -53,25 +53,23 @@ local function guiAccept()
     DuelRemote:FireServer(unpack(args))
 end
 
--- ==================== BUG LIÊN TỤC ====================
+-- Teleport xuống -1500 + set Humanoid.Health = 0 để chết ngay
 local function bugXuongVoid()
-    if dangBug then return end
-    dangBug = true
     local c = player.Character
-    if not c then dangBug = false return end
+    if not c then return end
     local hrp = c:FindFirstChild("HumanoidRootPart")
-    if not hrp then dangBug = false return end
-    
-    -- Bug nhiều lần liên tiếp
-    for i = 1, 5 do
+    local hum = c:FindFirstChild("Humanoid")
+    if not hrp then return end
+    pcall(function()
+        hrp.Anchored = false
+        hrp.CFrame = CFrame.new(hrp.Position.X, -1500, hrp.Position.Z)
+    end)
+    task.wait(0.1)
+    if hum then
         pcall(function()
-            hrp.Anchored = false
-            hrp.CFrame = CFrame.new(hrp.Position.X, -100 - (i * 20), hrp.Position.Z)
-            hrp.Velocity = Vector3.new(0, -1000, 0)
+            hum.Health = 0
         end)
-        task.wait(0.1)
     end
-    dangBug = false
 end
 
 -- ==================== VÒNG LẶP ====================
