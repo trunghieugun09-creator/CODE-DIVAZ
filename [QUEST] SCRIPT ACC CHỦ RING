@@ -1,4 +1,4 @@
---code số 72: AUTO DUEL 1VS1 - ZONE RING - QUÉT PART TRỰC TIẾP - FULL
+--code số 73: AUTO DUEL 1VS1 - ZONE RING - HOÀN THIỆN KHÔNG BAN
 local player = game.Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 local UIS = game:GetService("UserInputService")
@@ -16,17 +16,17 @@ local mt = nil
 local chu = nil
 local daLayAvt = {}
 local daBug = false
-local lastRemote = 0
+local lastChallenge = 0
+local lastAccept = 0
 local dangBug = false
 
--- ==================== TRONG ZONE (QUÉT PART TRỰC TIẾP) ====================
+-- ==================== TRONG ZONE ====================
 local function trongZone(pl)
     local c = pl and pl.Character
     if not c then return false end
     local hrp = c:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
     local pos = hrp.Position
-    
     for i = 1, 3 do
         local ring = workspace:FindFirstChild("Ring" .. i)
         if ring and ring:IsA("Model") then
@@ -41,29 +41,19 @@ local function trongZone(pl)
     return false
 end
 
--- REMOTE ĐÚNG ĐỊNH DẠNG:
+-- ==================== REMOTE ====================
+local function guiChallenge()
+    if not mt then return end
+    local args = {[1] = {["TargetUserId"] = mt.UserId, ["Event"] = "DuelRequest", ["Action"] = "Challenge"}}
+    DuelRemote:FireServer(unpack(args))
+end
+local function guiAccept()
+    if not chu then return end
+    local args = {[1] = {["ChallengerUserId"] = chu.UserId, ["Event"] = "DuelRequest", ["Action"] = "Accept"}}
+    DuelRemote:FireServer(unpack(args))
+end
 
--- CHỦ GỬI CHALLENGE:
-local args = {
-    [1] = {
-        ["TargetUserId"] = mt.UserId,
-        ["Event"] = "DuelRequest",
-        ["Action"] = "Challenge"
-    }
-}
-game:GetService("ReplicatedStorage").DuelRemote:FireServer(unpack(args))
-
--- CLONE GỬI ACCEPT:
-local args = {
-    [1] = {
-        ["ChallengerUserId"] = chu.UserId,
-        ["Event"] = "DuelRequest",
-        ["Action"] = "Accept"
-    }
-}
-game:GetService("ReplicatedStorage").DuelRemote:FireServer(unpack(args))
-
--- ==================== BUG LIÊN TỤC ====================
+-- ==================== BUG ====================
 local function bugXuongVoid()
     if dangBug then return end
     dangBug = true
@@ -97,7 +87,7 @@ local function vongLapClone()
             end
         else
             daBug = false
-            if tick() - lastRemote >= 2 then guiAccept() lastRemote = tick() end
+            if tick() - lastAccept >= 2 then guiAccept() lastAccept = tick() end
         end
         task.wait(0.05)
     end
@@ -107,7 +97,7 @@ local function vongLapChu()
     while chay do
         if not mt then task.wait(0.3) continue end
         if trongZone(player) then task.wait(0.3)
-        elseif tick() - lastRemote >= 3 then guiChallenge() lastRemote = tick() end
+        elseif tick() - lastChallenge >= 3 then guiChallenge() lastChallenge = tick() end
         task.wait(0.05)
     end
 end
@@ -131,6 +121,7 @@ local sf=Instance.new("ScrollingFrame") sf.Size=UDim2.new(1,-12,0,180) sf.Positi
 local lay=Instance.new("UIListLayout") lay.Padding=UDim.new(0,2) lay.Parent=sf
 
 local stZone=Instance.new("TextLabel") stZone.Size=UDim2.new(1,0,0,36) stZone.Position=UDim2.new(0,0,0,222) stZone.Text="📡 Đang kiểm tra..." stZone.TextColor3=Color3.new(0.7,0.7,1) stZone.BackgroundTransparency=1 stZone.Font=Enum.Font.Gotham stZone.TextSize=10 stZone.TextXAlignment=Enum.TextXAlignment.Center stZone.Parent=km
+
 local st=Instance.new("TextLabel") st.Size=UDim2.new(1,0,0,18) st.Position=UDim2.new(0,0,0,260) st.Text="Sẵn sàng" st.TextColor3=Color3.new(0.7,0.7,0.7) st.BackgroundTransparency=1 st.Font=Enum.Font.GothamBold st.TextSize=10 st.TextXAlignment=Enum.TextXAlignment.Center st.Parent=km
 local nStart=Instance.new("TextButton") nStart.Size=UDim2.new(0.7,0,0,32) nStart.Position=UDim2.new(0.15,0,1,-36) nStart.BackgroundColor3=Color3.fromRGB(0,150,70) nStart.Text="▶ START" nStart.TextColor3=Color3.new(1,1,1) nStart.Font=Enum.Font.GothamBold nStart.TextSize=13 nStart.Parent=km Instance.new("UICorner",nStart).CornerRadius=UDim.new(0,7)
 
@@ -166,7 +157,7 @@ nStart.MouseButton1Click:Connect(function()
     if not chay then
         if vai=="chu" and not mt then st.Text="⚠️ Chưa chọn target!" return end
         if vai=="clone" and not chu then st.Text="⚠️ Chưa chọn chủ!" return end
-        chay=true daBug=false lastRemote=0 nStart.Text="⏸ DỪNG" nStart.BackgroundColor3=Color3.fromRGB(200,40,40)
+        chay=true daBug=false lastChallenge=0 lastAccept=0 nStart.Text="⏸ DỪNG" nStart.BackgroundColor3=Color3.fromRGB(200,40,40)
         if vai=="chu" then task.spawn(vongLapChu) else task.spawn(vongLapClone) end
     else chay=false nStart.Text="▶ START" nStart.BackgroundColor3=Color3.fromRGB(0,150,70) end
 end)
