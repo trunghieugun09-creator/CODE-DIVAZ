@@ -53,25 +53,17 @@ local function guiAccept()
     DuelRemote:FireServer(unpack(args))
 end
 
--- ==================== BUG ====================
+-- SỬA bugXuongVoid: Set thẳng Y = -1500, 1 lần duy nhất
 local function bugXuongVoid()
-    if dangBug then return end
-    dangBug = true
-    for i = 1, 5 do
-        local c = player.Character
-        if c then
-            local hrp = c:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                pcall(function()
-                    hrp.Anchored = false
-                    hrp.CFrame = CFrame.new(hrp.Position.X, -100 - (i * 30), hrp.Position.Z)
-                    hrp.Velocity = Vector3.new(0, -1500, 0)
-                end)
-            end
-        end
-        task.wait(0.08)
-    end
-    dangBug = false
+    local c = player.Character
+    if not c then return end
+    local hrp = c:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    pcall(function()
+        hrp.Anchored = false
+        hrp.CFrame = CFrame.new(hrp.Position.X, -1500, hrp.Position.Z)
+        hrp.Velocity = Vector3.new(0, -5000, 0)
+    end)
 end
 
 -- ==================== VÒNG LẶP ====================
