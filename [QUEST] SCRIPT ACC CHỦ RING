@@ -53,17 +53,22 @@ local function guiAccept()
     DuelRemote:FireServer(unpack(args))
 end
 
--- SỬA bugXuongVoid: Set thẳng Y = -1500, 1 lần duy nhất
+-- SỬA bugXuongVoid: Teleport xuống -1500, lặp 20 lần liên tục để chống redirect
 local function bugXuongVoid()
-    local c = player.Character
-    if not c then return end
-    local hrp = c:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    pcall(function()
-        hrp.Anchored = false
-        hrp.CFrame = CFrame.new(hrp.Position.X, -1500, hrp.Position.Z)
-        hrp.Velocity = Vector3.new(0, -5000, 0)
-    end)
+    for i = 1, 20 do
+        local c = player.Character
+        if c then
+            local hrp = c:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                pcall(function()
+                    hrp.Anchored = false
+                    hrp.CFrame = CFrame.new(hrp.Position.X, -1500, hrp.Position.Z)
+                    hrp.Velocity = Vector3.new(0, -10000, 0)
+                end)
+            end
+        end
+        task.wait(0.01)
+    end
 end
 
 -- ==================== VÒNG LẶP ====================
