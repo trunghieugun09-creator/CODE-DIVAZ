@@ -1,4 +1,4 @@
---code so 57: CLONE A - HIT + GRAB TREN 3 MAU - HIT + STOMP DUOI 3 MAU - UU TIEN NAILS TRUOC (DELTAX MOBILE)
+--code so 57: CLONE A - HIT + STOMP DUOI 3 MAU - UU TIEN NAILS TRUOC (DELTAX MOBILE)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
@@ -51,30 +51,25 @@ local function lay_nhan_vat()
     return c, c:FindFirstChild("Humanoid"), c:FindFirstChild("HumanoidRootPart")
 end
 
--- SỬA lay_tool_uu_tien: Chỉ cần chứa "katana" là cầm, không cần tên đầy đủ
 local function lay_tool_uu_tien()
     local c = nguoi_choi.Character
     local bp = nguoi_choi:FindFirstChild("Backpack")
     
-    -- 1. Tìm tool chứa "katana" trong Character
     if c then
         for _, v in pairs(c:GetChildren()) do
             if v:IsA("Tool") and string.lower(v.Name):find("katana") then return v end
         end
     end
-    -- 2. Tìm tool chứa "katana" trong Backpack
     if bp then
         for _, v in pairs(bp:GetChildren()) do
             if v:IsA("Tool") and string.lower(v.Name):find("katana") then return v end
         end
     end
-    -- 3. Fallback: Fist trong Character
     if c then
         for _, v in pairs(c:GetChildren()) do
             if v:IsA("Tool") and v.Name == "Fist" then return v end
         end
     end
-    -- 4. Fallback: Fist trong Backpack
     if bp then
         local fist = bp:FindFirstChild("Fist")
         if fist then return fist end
@@ -105,7 +100,6 @@ local function danh()
         if tool and tool:IsA("Tool") then pcall(function() tool:Activate() end) end
     end
 end
-
 
 local function stomp()
     bam_phim(Enum.KeyCode.E)
@@ -182,6 +176,7 @@ task.spawn(function()
             elseif khoang_cach < 1 then dang_danh = true; if not dang_di_chuyen then lui_ra(dich, tam_lui) end
             else dung_di_chuyen(); dang_danh = true; r.CFrame = CFrame.lookAt(r.Position, Vector3.new(dich.Position.X, r.Position.Y, dich.Position.Z)); danh(); task.wait(0.02) end
         end
+    end
 end)
 
 local gui = Instance.new("ScreenGui")
