@@ -24,8 +24,6 @@ end)
 
 -- AUTO SPIN NAILS
 local auto_spin_on = false
-local spin_thread = nil
-local last_money_check = 0
 local money_spent = 0
 local spin_count = 0
 
@@ -68,38 +66,77 @@ local function chay(url, ten)
 end
 
 -- GUI
-local gui = Instance.new("ScreenGui") gui.Name = "A_GUI" gui.ResetOnSpawn = false gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling gui.Parent = gui_nguoi_choi
+local gui = Instance.new("ScreenGui") 
+gui.Name = "A_GUI" 
+gui.ResetOnSpawn = false 
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling 
+gui.Parent = gui_nguoi_choi
 
-local main = Instance.new("Frame", gui) main.Size = UDim2.new(0, 200, 0, 300) main.Position = UDim2.new(0, 20, 0.5, -150) main.BackgroundColor3 = Color3.fromRGB(20, 20, 20) main.BackgroundTransparency = 0.15 main.BorderSizePixel = 0 main.Active = true
+local main = Instance.new("Frame", gui) 
+main.Size = UDim2.new(0, 200, 0, 300) 
+main.Position = UDim2.new(0, 20, 0.5, -150) 
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 20) 
+main.BackgroundTransparency = 0.15 
+main.BorderSizePixel = 0 
+main.Active = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
 
-local top = Instance.new("Frame", main) top.Size = UDim2.new(1, 0, 0, 30) top.BackgroundColor3 = Color3.fromRGB(30, 30, 30) top.BorderSizePixel = 0
+local top = Instance.new("Frame", main) 
+top.Size = UDim2.new(1, 0, 0, 30) 
+top.BackgroundColor3 = Color3.fromRGB(30, 30, 30) 
+top.BorderSizePixel = 0
 Instance.new("UICorner", top).CornerRadius = UDim.new(0, 12)
 
-local title = Instance.new("TextLabel", top) title.Size = UDim2.new(0.6, 0, 1, 0) title.Position = UDim2.new(0.05, 0, 0, 0) title.Text = "MENU DA NANG" title.TextColor3 = Color3.new(1, 1, 1) title.Font = Enum.Font.GothamBold title.TextSize = 11 title.BackgroundTransparency = 1 title.TextXAlignment = Enum.TextXAlignment.Left
+local title = Instance.new("TextLabel", top) 
+title.Size = UDim2.new(0.6, 0, 1, 0) 
+title.Position = UDim2.new(0.05, 0, 0, 0) 
+title.Text = "MENU DA NANG" 
+title.TextColor3 = Color3.new(1, 1, 1) 
+title.Font = Enum.Font.GothamBold 
+title.TextSize = 11 
+title.BackgroundTransparency = 1 
+title.TextXAlignment = Enum.TextXAlignment.Left
 
-local close = Instance.new("TextButton", top) close.Size = UDim2.new(0, 20, 0, 20) close.Position = UDim2.new(1, -26, 0, 5) close.Text = "x" close.TextColor3 = Color3.new(1, 1, 1) close.BackgroundColor3 = Color3.fromRGB(220, 50, 50) close.Font = Enum.Font.GothamBold close.TextSize = 10
+local close = Instance.new("TextButton", top) 
+close.Size = UDim2.new(0, 20, 0, 20) 
+close.Position = UDim2.new(1, -26, 0, 5) 
+close.Text = "x" 
+close.TextColor3 = Color3.new(1, 1, 1) 
+close.BackgroundColor3 = Color3.fromRGB(220, 50, 50) 
+close.Font = Enum.Font.GothamBold 
+close.TextSize = 10
 Instance.new("UICorner", close).CornerRadius = UDim.new(0, 4)
 
-local minBtn = Instance.new("TextButton", top) minBtn.Size = UDim2.new(0, 20, 0, 20) minBtn.Position = UDim2.new(1, -50, 0, 5) minBtn.Text = "-" minBtn.TextColor3 = Color3.new(1, 1, 1) minBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 30) minBtn.Font = Enum.Font.GothamBold minBtn.TextSize = 10
+local minBtn = Instance.new("TextButton", top) 
+minBtn.Size = UDim2.new(0, 20, 0, 20) 
+minBtn.Position = UDim2.new(1, -50, 0, 5) 
+minBtn.Text = "-" 
+minBtn.TextColor3 = Color3.new(1, 1, 1) 
+minBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 30) 
+minBtn.Font = Enum.Font.GothamBold 
+minBtn.TextSize = 10
 Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 4)
 
-local body = Instance.new("Frame", main) body.Size = UDim2.new(1, 0, 1, -30) body.Position = UDim2.new(0, 0, 0, 30) body.BackgroundTransparency = 1
+local body = Instance.new("Frame", main) 
+body.Size = UDim2.new(1, 0, 1, -30) 
+body.Position = UDim2.new(0, 0, 0, 30) 
+body.BackgroundTransparency = 1
 
-local uiList = Instance.new("UIListLayout", body) uiList.Padding = UDim.new(0, 4) uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center uiList.SortOrder = Enum.SortOrder.LayoutOrder
+local uiList = Instance.new("UIListLayout", body) 
+uiList.Padding = UDim.new(0, 4) 
+uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center 
+uiList.SortOrder = Enum.SortOrder.LayoutOrder
 Instance.new("UIPadding", body).PaddingTop = UDim.new(0, 6)
 
--- Thông tin hiển thị
 local infoLabel = Instance.new("TextLabel", body)
 infoLabel.Size = UDim2.new(1, -16, 0, 18)
 infoLabel.BackgroundTransparency = 1
 infoLabel.Font = Enum.Font.GothamBold
 infoLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
 infoLabel.TextSize = 10
-infoLabel.Text = "Spin: 0 | Đã dùng: 0"
+infoLabel.Text = "Spin: 0 | Da dung: 0"
 infoLabel.TextXAlignment = Enum.TextXAlignment.Center
 
--- Tao nut
 local function taoNut(text, mau, callback)
     local btn = Instance.new("TextButton", body)
     btn.Size = UDim2.new(1, -16, 0, 32)
@@ -150,8 +187,9 @@ taoNut("Giam Vat The", Color3.fromRGB(0, 140, 140), function()
     chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BEXPLORER%5D%20GI%E1%BA%A2M%20V%E1%BA%ACT%20TH%E1%BB%82%20MAP", "giam_vat_the")
 end)
 
-taoNut("Auto Spin Nails", Color3.fromRGB(150, 0, 200), function()
-    auto_spin_on = not auto_spin_on
+-- Auto Spin Nails (dạng toggle ON/OFF)
+taoToggle("Auto Spin Nails", Color3.fromRGB(150, 0, 200), Color3.fromRGB(50, 50, 60), function(o)
+    auto_spin_on = o
     if auto_spin_on then
         money_spent = 0
         spin_count = 0
@@ -159,27 +197,55 @@ taoNut("Auto Spin Nails", Color3.fromRGB(150, 0, 200), function()
     end
 end)
 
-taoToggle("ANTI AFK", Color3.fromRGB(0, 180, 80), Color3.fromRGB(50, 50, 60), function(o) afk_on = o end)
+-- Anti AFK (dạng toggle ON/OFF)
+taoToggle("ANTI AFK", Color3.fromRGB(0, 180, 80), Color3.fromRGB(50, 50, 60), function(o) 
+    afk_on = o 
+end)
 
--- Cập nhật thông tin
 task.spawn(function()
     while gui and gui.Parent do
         if auto_spin_on then
-            infoLabel.Text = "Spin: " .. spin_count .. " | Đã dùng: " .. money_spent
+            infoLabel.Text = "Spin: " .. spin_count .. " | Da dung: " .. money_spent
         else
-            infoLabel.Text = "Spin: " .. spin_count .. " | Đã dùng: " .. money_spent .. " (OFF)"
+            infoLabel.Text = "Spin: " .. spin_count .. " | Da dung: " .. money_spent .. " (OFF)"
         end
         task.wait(0.5)
     end
 end)
 
--- Su kien
 local content = body
-minBtn.MouseButton1Click:Connect(function() content.Visible = not content.Visible main.Size = content.Visible and UDim2.new(0, 200, 0, 300) or UDim2.new(0, 200, 0, 30) end)
-close.MouseButton1Click:Connect(function() afk_on = false auto_spin_on = false gui:Destroy() end)
+minBtn.MouseButton1Click:Connect(function() 
+    content.Visible = not content.Visible 
+    main.Size = content.Visible and UDim2.new(0, 200, 0, 300) or UDim2.new(0, 200, 0, 30) 
+end)
 
--- Keo tha
+close.MouseButton1Click:Connect(function() 
+    afk_on = false 
+    auto_spin_on = false 
+    gui:Destroy() 
+end)
+
 local drag, dragStart, startPos, dragInput = false, nil, nil, nil
-main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then drag = true dragStart = i.Position startPos = main.Position i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then drag = false end end) end end)
-main.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseMovement then dragInput = i end end)
-UIS.InputChanged:Connect(function(i) if i == dragInput and drag then local d = i.Position - dragStart main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y) end end)
+main.InputBegan:Connect(function(i) 
+    if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then 
+        drag = true 
+        dragStart = i.Position 
+        startPos = main.Position 
+        i.Changed:Connect(function() 
+            if i.UserInputState == Enum.UserInputState.End then drag = false end 
+        end) 
+    end 
+end)
+
+main.InputChanged:Connect(function(i) 
+    if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseMovement then 
+        dragInput = i 
+    end 
+end)
+
+UIS.InputChanged:Connect(function(i) 
+    if i == dragInput and drag then 
+        local d = i.Position - dragStart 
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y) 
+    end 
+end)
