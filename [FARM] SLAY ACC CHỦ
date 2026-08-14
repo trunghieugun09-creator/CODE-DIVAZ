@@ -106,7 +106,6 @@ local function danh()
     end
 end
 
-local function tom() bam_phim(Enum.KeyCode.G) end
 
 local function stomp()
     bam_phim(Enum.KeyCode.E)
@@ -181,9 +180,8 @@ task.spawn(function()
         else
             if khoang_cach > tam_danh then dang_danh = true; if not dang_di_chuyen then di_toi_muc_tieu(dich) end
             elseif khoang_cach < 1 then dang_danh = true; if not dang_di_chuyen then lui_ra(dich, tam_lui) end
-            else dung_di_chuyen(); dang_danh = true; r.CFrame = CFrame.lookAt(r.Position, Vector3.new(dich.Position.X, r.Position.Y, dich.Position.Z)); danh(); tom(); task.wait(0.02) end
+            else dung_di_chuyen(); dang_danh = true; r.CFrame = CFrame.lookAt(r.Position, Vector3.new(dich.Position.X, r.Position.Y, dich.Position.Z)); danh(); task.wait(0.02) end
         end
-    end
 end)
 
 local gui = Instance.new("ScreenGui")
@@ -364,7 +362,7 @@ task.spawn(function()
     while gui and gui.Parent do
         if muc_tieu and muc_tieu.Character and muc_tieu.Character:FindFirstChild("Humanoid") then
             local mau_dich = muc_tieu.Character:FindFirstChild("Humanoid")
-            local trang_thai = mau_dich.Health < nguong_mau and " [STOMP]" or " [GRAB]"
+            local trang_thai = mau_dich.Health < nguong_mau and " [STOMP]" or " [HIT]"
             nhan_thong_tin.Text = dang_danh and muc_tieu.Name .. " (" .. math.floor(mau_dich.Health) .. " HP)" .. trang_thai or "Doi..."
         else
             nhan_thong_tin.Text = dang_hoat_dong and "San sang" or "Dung"
