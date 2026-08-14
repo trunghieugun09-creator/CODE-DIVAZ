@@ -51,24 +51,30 @@ local function lay_nhan_vat()
     return c, c:FindFirstChild("Humanoid"), c:FindFirstChild("HumanoidRootPart")
 end
 
+-- SỬA lay_tool_uu_tien: Chỉ cần chứa "katana" là cầm, không cần tên đầy đủ
 local function lay_tool_uu_tien()
     local c = nguoi_choi.Character
     local bp = nguoi_choi:FindFirstChild("Backpack")
+    
+    -- 1. Tìm tool chứa "katana" trong Character
     if c then
         for _, v in pairs(c:GetChildren()) do
-            if v:IsA("Tool") and string.find(string.lower(v.Name), "katana") then return v end
+            if v:IsA("Tool") and string.lower(v.Name):find("katana") then return v end
         end
     end
+    -- 2. Tìm tool chứa "katana" trong Backpack
     if bp then
         for _, v in pairs(bp:GetChildren()) do
-            if v:IsA("Tool") and string.find(string.lower(v.Name), "katana") then return v end
+            if v:IsA("Tool") and string.lower(v.Name):find("katana") then return v end
         end
     end
+    -- 3. Fallback: Fist trong Character
     if c then
         for _, v in pairs(c:GetChildren()) do
             if v:IsA("Tool") and v.Name == "Fist" then return v end
         end
     end
+    -- 4. Fallback: Fist trong Backpack
     if bp then
         local fist = bp:FindFirstChild("Fist")
         if fist then return fist end
