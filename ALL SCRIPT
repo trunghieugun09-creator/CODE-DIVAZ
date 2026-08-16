@@ -106,8 +106,8 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = gui_nguoi_choi
 
 local main = Instance.new("Frame", gui) 
-main.Size = UDim2.new(0, 200, 0, 370) 
-main.Position = UDim2.new(0, 20, 0.5, -185) 
+main.Size = UDim2.new(0, 220, 0, 400)  -- Tăng chiều rộng và cao
+main.Position = UDim2.new(0, 20, 0.5, -200) 
 main.BackgroundColor3 = Color3.fromRGB(20, 20, 20) 
 main.BackgroundTransparency = 0.15 
 main.BorderSizePixel = 0 
@@ -150,19 +150,22 @@ minBtn.Font = Enum.Font.GothamBold
 minBtn.TextSize = 10
 Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 4)
 
-local body = Instance.new("Frame", main) 
+local body = Instance.new("ScrollingFrame", main)  -- Đổi thành ScrollingFrame để có thể scroll
 body.Size = UDim2.new(1, 0, 1, -30) 
 body.Position = UDim2.new(0, 0, 0, 30) 
 body.BackgroundTransparency = 1
+body.CanvasSize = UDim2.new(0, 0, 0, 0)
+body.ScrollBarThickness = 3
+body.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
 
 local uiList = Instance.new("UIListLayout", body) 
-uiList.Padding = UDim.new(0, 4) 
+uiList.Padding = UDim.new(0, 5) 
 uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center 
 uiList.SortOrder = Enum.SortOrder.LayoutOrder
 Instance.new("UIPadding", body).PaddingTop = UDim.new(0, 6)
 
 local infoLabel = Instance.new("TextLabel", body)
-infoLabel.Size = UDim2.new(1, -16, 0, 18)
+infoLabel.Size = UDim2.new(1, -16, 0, 20)
 infoLabel.BackgroundTransparency = 1
 infoLabel.Font = Enum.Font.GothamBold
 infoLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
@@ -204,6 +207,7 @@ local function taoToggle(text, mauOn, mauOff, callback)
     return btn
 end
 
+-- Các nút chức năng
 taoNut("Farm Slay (Acc chu)", Color3.fromRGB(80, 60, 200), function()
     chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20SLAY%20ACC%20CH%E1%BB%A6", "slay_chu")
 end)
@@ -245,6 +249,15 @@ taoToggle("ANTI AFK", Color3.fromRGB(0, 180, 80), Color3.fromRGB(50, 50, 60), fu
     afk_on = o 
 end)
 
+-- Cập nhật CanvasSize cho ScrollingFrame
+task.spawn(function()
+    while body and body.Parent do
+        task.wait(0.1)
+        local contentHeight = uiList.AbsoluteContentSize.Y
+        body.CanvasSize = UDim2.new(0, 0, 0, contentHeight + 10)
+    end
+end)
+
 task.spawn(function()
     while gui and gui.Parent do
         local text = "Nails: " .. spin_count_nails .. " ($" .. money_spent_nails .. ")"
@@ -264,7 +277,7 @@ end)
 local content = body
 minBtn.MouseButton1Click:Connect(function() 
     content.Visible = not content.Visible 
-    main.Size = content.Visible and UDim2.new(0, 200, 0, 370) or UDim2.new(0, 200, 0, 30) 
+    main.Size = content.Visible and UDim2.new(0, 220, 0, 400) or UDim2.new(0, 220, 0, 30) 
 end)
 
 close.MouseButton1Click:Connect(function() 
