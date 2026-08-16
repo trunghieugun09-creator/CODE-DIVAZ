@@ -106,8 +106,8 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = gui_nguoi_choi
 
 local main = Instance.new("Frame", gui) 
-main.Size = UDim2.new(0, 220, 0, 400)  -- Tăng chiều rộng và cao
-main.Position = UDim2.new(0, 20, 0.5, -200) 
+main.Size = UDim2.new(0, 200, 0, 275) -- Thu nhỏ lại
+main.Position = UDim2.new(0, 20, 0.5, -170) 
 main.BackgroundColor3 = Color3.fromRGB(20, 20, 20) 
 main.BackgroundTransparency = 0.15 
 main.BorderSizePixel = 0 
@@ -150,7 +150,7 @@ minBtn.Font = Enum.Font.GothamBold
 minBtn.TextSize = 10
 Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 4)
 
-local body = Instance.new("ScrollingFrame", main)  -- Đổi thành ScrollingFrame để có thể scroll
+local body = Instance.new("ScrollingFrame", main) 
 body.Size = UDim2.new(1, 0, 1, -30) 
 body.Position = UDim2.new(0, 0, 0, 30) 
 body.BackgroundTransparency = 1
@@ -159,28 +159,28 @@ body.ScrollBarThickness = 3
 body.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
 
 local uiList = Instance.new("UIListLayout", body) 
-uiList.Padding = UDim.new(0, 5) 
+uiList.Padding = UDim.new(0, 3) -- Giảm padding
 uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center 
 uiList.SortOrder = Enum.SortOrder.LayoutOrder
-Instance.new("UIPadding", body).PaddingTop = UDim.new(0, 6)
+Instance.new("UIPadding", body).PaddingTop = UDim.new(0, 4)
 
 local infoLabel = Instance.new("TextLabel", body)
-infoLabel.Size = UDim2.new(1, -16, 0, 20)
+infoLabel.Size = UDim2.new(1, -16, 0, 16)
 infoLabel.BackgroundTransparency = 1
 infoLabel.Font = Enum.Font.GothamBold
 infoLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-infoLabel.TextSize = 10
-infoLabel.Text = "Nails: 0 | Crate: 0"
+infoLabel.TextSize = 9 -- Nhỏ hơn
+infoLabel.Text = "Nails:0 | Crate:0"
 infoLabel.TextXAlignment = Enum.TextXAlignment.Center
 
 local function taoNut(text, mau, callback)
     local btn = Instance.new("TextButton", body)
-    btn.Size = UDim2.new(1, -16, 0, 32)
+    btn.Size = UDim2.new(1, -16, 0, 28) -- Nhỏ hơn
     btn.BackgroundColor3 = mau
     btn.Text = text
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 10
+    btn.TextSize = 9 -- Nhỏ hơn
     btn.AutoButtonColor = false
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     btn.MouseButton1Click:Connect(callback)
@@ -190,12 +190,12 @@ end
 local function taoToggle(text, mauOn, mauOff, callback)
     local on = false
     local btn = Instance.new("TextButton", body)
-    btn.Size = UDim2.new(1, -16, 0, 32)
+    btn.Size = UDim2.new(1, -16, 0, 28) -- Nhỏ hơn
     btn.BackgroundColor3 = mauOff
     btn.Text = text .. ": OFF"
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 10
+    btn.TextSize = 9 -- Nhỏ hơn
     btn.AutoButtonColor = false
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     btn.MouseButton1Click:Connect(function()
@@ -207,12 +207,13 @@ local function taoToggle(text, mauOn, mauOff, callback)
     return btn
 end
 
--- Các nút chức năng
-taoNut("Farm Slay (Acc chu)", Color3.fromRGB(80, 60, 200), function()
+-- Gộp các nút Farm lại thành 1 dòng 2 cột? Không, giữ nguyên nhưng thu nhỏ
+
+taoNut("Farm Slay (Chu)", Color3.fromRGB(80, 60, 200), function()
     chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20SLAY%20ACC%20CH%E1%BB%A6", "slay_chu")
 end)
 
-taoNut("Farm Slay (Acc clone)", Color3.fromRGB(80, 60, 200), function()
+taoNut("Farm Slay (Clone)", Color3.fromRGB(80, 60, 200), function()
     chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20SLAY%20ACC%20CLONE", "slay_clone")
 end)
 
@@ -224,7 +225,6 @@ taoNut("Giam Vat The", Color3.fromRGB(0, 140, 140), function()
     chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BEXPLORER%5D%20GI%E1%BA%A2M%20V%E1%BA%ACT%20TH%E1%BB%82%20MAP", "giam_vat_the")
 end)
 
--- Auto Spin Nails
 taoToggle("Auto Spin Nails", Color3.fromRGB(150, 0, 200), Color3.fromRGB(50, 50, 60), function(o)
     auto_spin_on = o
     if auto_spin_on then
@@ -234,7 +234,6 @@ taoToggle("Auto Spin Nails", Color3.fromRGB(150, 0, 200), Color3.fromRGB(50, 50,
     end
 end)
 
--- Auto Spin Create Cosmo
 taoToggle("Auto Spin Crate", Color3.fromRGB(255, 150, 0), Color3.fromRGB(50, 50, 60), function(o)
     auto_spin_crate_on = o
     if auto_spin_crate_on then
@@ -244,12 +243,11 @@ taoToggle("Auto Spin Crate", Color3.fromRGB(255, 150, 0), Color3.fromRGB(50, 50,
     end
 end)
 
--- Anti AFK
 taoToggle("ANTI AFK", Color3.fromRGB(0, 180, 80), Color3.fromRGB(50, 50, 60), function(o) 
     afk_on = o 
 end)
 
--- Cập nhật CanvasSize cho ScrollingFrame
+-- Cập nhật CanvasSize
 task.spawn(function()
     while body and body.Parent do
         task.wait(0.1)
@@ -258,26 +256,19 @@ task.spawn(function()
     end
 end)
 
+-- Update info
 task.spawn(function()
     while gui and gui.Parent do
-        local text = "Nails: " .. spin_count_nails .. " ($" .. money_spent_nails .. ")"
-        if auto_spin_crate_on then
-            text = text .. " | Crate: " .. spin_count_crate .. " ($" .. money_spent_crate .. ")"
-        else
-            text = text .. " | Crate: " .. spin_count_crate .. " ($" .. money_spent_crate .. ") OFF"
-        end
-        if not auto_spin_on then
-            text = text .. " | Nails OFF"
-        end
+        local text = "N:" .. spin_count_nails .. "($" .. money_spent_nails .. ")"
+        text = text .. " | C:" .. spin_count_crate .. "($" .. money_spent_crate .. ")"
         infoLabel.Text = text
         task.wait(0.5)
     end
 end)
 
-local content = body
 minBtn.MouseButton1Click:Connect(function() 
-    content.Visible = not content.Visible 
-    main.Size = content.Visible and UDim2.new(0, 220, 0, 400) or UDim2.new(0, 220, 0, 30) 
+    body.Visible = not body.Visible 
+    main.Size = body.Visible and UDim2.new(0, 200, 0, 340) or UDim2.new(0, 200, 0, 30) 
 end)
 
 close.MouseButton1Click:Connect(function() 
@@ -311,3 +302,5 @@ UIS.InputChanged:Connect(function(i)
         main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y) 
     end 
 end)
+
+print("GUI Da Nang da duoc khoi tao!")
