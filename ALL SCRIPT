@@ -1,4 +1,4 @@
---code so 57: GUI DA NANG - 5 NUT SCRIPT + ANTI AFK + AUTO SPIN NAILS (DELTAX MOBILE)
+--code so 57: GUI DA NANG - 5 NUT SCRIPT + ANTI AFK + AUTO SPIN NAILS + AUTO SPIN CRATE (DELTAX MOBILE)
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
@@ -24,8 +24,13 @@ end)
 
 -- AUTO SPIN NAILS
 local auto_spin_on = false
-local money_spent = 0
-local spin_count = 0
+local money_spent_nails = 0
+local spin_count_nails = 0
+
+-- AUTO SPIN CRATE
+local auto_spin_crate_on = false
+local money_spent_crate = 0
+local spin_count_crate = 0
 
 local function getBaseMoney()
     local leaderstats = nguoi_choi:FindFirstChild("leaderstats")
@@ -36,20 +41,48 @@ local function getBaseMoney()
     return 0
 end
 
+-- SPIN NAILS
 local function spinNails()
     pcall(function()
         local args = { [1] = { ["Event"] = "SpinWeaponWheel" } }
         game:GetService("ReplicatedStorage").Event:FireServer(unpack(args))
-        spin_count = spin_count + 1
-        money_spent = money_spent + 1000
+        spin_count_nails = spin_count_nails + 1
+        money_spent_nails = money_spent_nails + 1000
     end)
 end
 
-local function autoSpinLoop()
+local function autoSpinNailsLoop()
     while auto_spin_on do
         local current_money = getBaseMoney()
         if current_money >= 1000 then
             spinNails()
+            task.wait(0.5)
+        else
+            task.wait(1)
+        end
+    end
+end
+
+-- SPIN CRATE
+local function spinCrate()
+    pcall(function()
+        local args = {
+            [1] = {
+                ["Event"] = "SpinWeaponCrate",
+                ["Crate"] = "Elemental Weapon Crate"
+            }
+        }
+        game:GetService("ReplicatedStorage").Event:FireServer(unpack(args))
+        spin_count_crate = spin_count_crate + 1
+        money_spent_crate = money_spent_crate + 8000
+    end)
+end
+
+local function autoSpinCrateLoop()
+    while auto_spin_crate_on do
+        local current_money = getBaseMoney()
+        if current_money >= 8000 then
+            spinCrate()
             task.wait(0.5)
         else
             task.wait(1)
@@ -73,8 +106,8 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = gui_nguoi_choi
 
 local main = Instance.new("Frame", gui) 
-main.Size = UDim2.new(0, 200, 0, 300) 
-main.Position = UDim2.new(0, 20, 0.5, -150) 
+main.Size = UDim2.new(0, 200, 0, 370) 
+main.Position = UDim2.new(0, 20, 0.5, -185) 
 main.BackgroundColor3 = Color3.fromRGB(20, 20, 20) 
 main.BackgroundTransparency = 0.15 
 main.BorderSizePixel = 0 
@@ -134,7 +167,7 @@ infoLabel.BackgroundTransparency = 1
 infoLabel.Font = Enum.Font.GothamBold
 infoLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
 infoLabel.TextSize = 10
-infoLabel.Text = "Spin: 0 | Da dung: 0"
+infoLabel.Text = "Nails: 0 | Crate: 0"
 infoLabel.TextXAlignment = Enum.TextXAlignment.Center
 
 local function taoNut(text, mau, callback)
@@ -187,28 +220,43 @@ taoNut("Giam Vat The", Color3.fromRGB(0, 140, 140), function()
     chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BEXPLORER%5D%20GI%E1%BA%A2M%20V%E1%BA%ACT%20TH%E1%BB%82%20MAP", "giam_vat_the")
 end)
 
--- Auto Spin Nails (dạng toggle ON/OFF)
+-- Auto Spin Nails
 taoToggle("Auto Spin Nails", Color3.fromRGB(150, 0, 200), Color3.fromRGB(50, 50, 60), function(o)
     auto_spin_on = o
     if auto_spin_on then
-        money_spent = 0
-        spin_count = 0
-        task.spawn(autoSpinLoop)
+        money_spent_nails = 0
+        spin_count_nails = 0
+        task.spawn(autoSpinNailsLoop)
     end
 end)
 
--- Anti AFK (dạng toggle ON/OFF)
+-- Auto Spin Create Cosmo
+taoToggle("Auto Spin Crate", Color3.fromRGB(255, 150, 0), Color3.fromRGB(50, 50, 60), function(o)
+    auto_spin_crate_on = o
+    if auto_spin_crate_on then
+        money_spent_crate = 0
+        spin_count_crate = 0
+        task.spawn(autoSpinCrateLoop)
+    end
+end)
+
+-- Anti AFK
 taoToggle("ANTI AFK", Color3.fromRGB(0, 180, 80), Color3.fromRGB(50, 50, 60), function(o) 
     afk_on = o 
 end)
 
 task.spawn(function()
     while gui and gui.Parent do
-        if auto_spin_on then
-            infoLabel.Text = "Spin: " .. spin_count .. " | Da dung: " .. money_spent
+        local text = "Nails: " .. spin_count_nails .. " ($" .. money_spent_nails .. ")"
+        if auto_spin_crate_on then
+            text = text .. " | Crate: " .. spin_count_crate .. " ($" .. money_spent_crate .. ")"
         else
-            infoLabel.Text = "Spin: " .. spin_count .. " | Da dung: " .. money_spent .. " (OFF)"
+            text = text .. " | Crate: " .. spin_count_crate .. " ($" .. money_spent_crate .. ") OFF"
         end
+        if not auto_spin_on then
+            text = text .. " | Nails OFF"
+        end
+        infoLabel.Text = text
         task.wait(0.5)
     end
 end)
@@ -216,12 +264,13 @@ end)
 local content = body
 minBtn.MouseButton1Click:Connect(function() 
     content.Visible = not content.Visible 
-    main.Size = content.Visible and UDim2.new(0, 200, 0, 300) or UDim2.new(0, 200, 0, 30) 
+    main.Size = content.Visible and UDim2.new(0, 200, 0, 370) or UDim2.new(0, 200, 0, 30) 
 end)
 
 close.MouseButton1Click:Connect(function() 
     afk_on = false 
     auto_spin_on = false 
+    auto_spin_crate_on = false
     gui:Destroy() 
 end)
 
