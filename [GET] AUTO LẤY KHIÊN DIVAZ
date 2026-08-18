@@ -1,0 +1,346 @@
+--code số 26
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local TOA_DO_CUA = Vector3.new(85.5, 7.7, -681.6)
+local TOA_DO_LOOT = Vector3.new(89.6, 7.6, -681.2)
+local TOA_DO_SPAWN = Vector3.new(85.5, 7.7, -681.6)
+
+local isRunning = false
+local lootCount = 0
+local totalTime = 0
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AutoShieldGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = playerGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 200, 0, 120)
+MainFrame.Position = UDim2.new(1, -210, 0, 10)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BackgroundTransparency = 0.05
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICornerMain = Instance.new("UICorner")
+UICornerMain.CornerRadius = UDim.new(0, 12)
+UICornerMain.Parent = MainFrame
+
+local UIStrokeMain = Instance.new("UIStroke")
+UIStrokeMain.Color = Color3.fromRGB(255, 255, 255)
+UIStrokeMain.Transparency = 0.6
+UIStrokeMain.Thickness = 1
+UIStrokeMain.Parent = MainFrame
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Size = UDim2.new(1, -70, 0, 20)
+TitleLabel.Position = UDim2.new(0, 10, 0, 5)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Text = "AUTO SHIELD"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 12
+TitleLabel.Parent = MainFrame
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
+CloseButton.BackgroundTransparency = 0.1
+CloseButton.BorderSizePixel = 0
+CloseButton.Text = "✕"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 14
+CloseButton.Parent = MainFrame
+
+local UICornerClose = Instance.new("UICorner")
+UICornerClose.CornerRadius = UDim.new(0, 6)
+UICornerClose.Parent = CloseButton
+
+local LootLabel = Instance.new("TextLabel")
+LootLabel.Name = "LootLabel"
+LootLabel.Size = UDim2.new(0.5, -10, 0, 20)
+LootLabel.Position = UDim2.new(0, 10, 0, 40)
+LootLabel.BackgroundTransparency = 1
+LootLabel.TextXAlignment = Enum.TextXAlignment.Left
+LootLabel.Text = "Loot: 0"
+LootLabel.TextColor3 = Color3.fromRGB(0, 255, 170)
+LootLabel.Font = Enum.Font.GothamBold
+LootLabel.TextSize = 13
+LootLabel.Parent = MainFrame
+
+local TimeLabel = Instance.new("TextLabel")
+TimeLabel.Name = "TimeLabel"
+TimeLabel.Size = UDim2.new(0.5, -10, 0, 20)
+TimeLabel.Position = UDim2.new(0.5, 0, 0, 40)
+TimeLabel.BackgroundTransparency = 1
+TimeLabel.TextXAlignment = Enum.TextXAlignment.Right
+TimeLabel.Text = "00:00:00"
+TimeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TimeLabel.Font = Enum.Font.GothamBold
+TimeLabel.TextSize = 13
+TimeLabel.Parent = MainFrame
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Size = UDim2.new(0, 80, 0, 30)
+ToggleButton.Position = UDim2.new(1, -90, 0, 70)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ToggleButton.BackgroundTransparency = 0.1
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Text = "START"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 12
+ToggleButton.Parent = MainFrame
+
+local UICornerToggle = Instance.new("UICorner")
+UICornerToggle.CornerRadius = UDim.new(0, 6)
+UICornerToggle.Parent = ToggleButton
+
+-- Hồi sinh
+local function dichSpawn()
+    local count = 0
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.ClassName == "SpawnLocation" then
+            pcall(function()
+                obj.CFrame = CFrame.new(TOA_DO_SPAWN)
+                obj.Duration = 0
+            end)
+            count = count + 1
+        end
+    end
+    return count
+end
+
+dichSpawn()
+
+player.CharacterAdded:Connect(function(char)
+    task.wait(0.1)
+    local hrp = char:WaitForChild("HumanoidRootPart", 5)
+    if hrp then
+        hrp.CFrame = CFrame.new(TOA_DO_SPAWN)
+    end
+    dichSpawn()
+end)
+
+task.spawn(function()
+    while task.wait(0.5) do
+        dichSpawn()
+    end
+end)
+
+-- Move
+local function moveTo(targetPos)
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChild("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+    hum:MoveTo(targetPos)
+    local timeout = 15
+    local waited = 0
+    while isRunning and waited < timeout do
+        local dist = (hrp.Position - targetPos).Magnitude
+        if dist < 3 then return true end
+        hum:MoveTo(targetPos)
+        task.wait(0.5)
+        waited = waited + 0.5
+    end
+    return false
+end
+
+-- Tìm ProximityPrompt theo ActionText
+local function findPromptByActionText(actionText)
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") and v.ActionText == actionText then
+            return v
+        end
+    end
+    return nil
+end
+
+-- Tìm ProximityPrompt Loot
+local function findLootPrompt()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") then
+            if v.ActionText == "Loot" or v.Name == "Loot" then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
+-- Kiểm tra prompt đã dùng hay chưa
+local function isPromptUsed(prompt)
+    if not prompt then return true end
+    if prompt.Enabled == false then return true end
+    if prompt.ActionText == "" then return true end
+    if prompt.Parent and prompt.Parent:IsA("BasePart") then
+        if prompt.Parent.Transparency >= 0.9 then return true end
+    end
+    return false
+end
+
+-- Giữ ProximityPrompt cho đến khi đã dùng
+local function holdPromptUntilUsed(prompt)
+    pcall(function()
+        prompt:InputHoldBegin()
+    end)
+    local waited = 0
+    while isRunning and waited < 30 do
+        if isPromptUsed(prompt) then
+            pcall(function()
+                prompt:InputHoldEnd()
+            end)
+            return true
+        end
+        pcall(function()
+            prompt:InputHoldBegin()
+        end)
+        task.wait(0.1)
+        waited = waited + 0.1
+    end
+    pcall(function()
+        prompt:InputHoldEnd()
+    end)
+    return false
+end
+
+-- Lấy thời gian game
+local function getGameTime()
+    local minutesAfterMidnight = Lighting:GetMinutesAfterMidnight()
+    local hours = math.floor(minutesAfterMidnight / 60)
+    local minutes = math.floor(minutesAfterMidnight % 60)
+    return hours, minutes
+end
+
+-- Nhấn Loot bằng ProximityPrompt
+local function pressLoot(prompt)
+    pcall(function()
+        prompt:InputHoldBegin()
+        task.wait(0.15)
+        prompt:InputHoldEnd()
+    end)
+    return true
+end
+
+-- Main loop
+local function mainLoop()
+    while isRunning do
+        -- Chờ đến 17:55
+        while isRunning do
+            local hours, minutes = getGameTime()
+            if hours == 17 and minutes >= 55 then break end
+            task.wait(1)
+        end
+
+        -- Move đến cửa ngân hàng
+        moveTo(TOA_DO_CUA)
+
+        -- Chờ đến 18:00
+        while isRunning do
+            local hours, minutes = getGameTime()
+            if hours == 18 and minutes >= 0 then break end
+            task.wait(1)
+        end
+
+        task.wait(0.5)
+
+        local vaultPrompt = findPromptByActionText("Unlock Vault")
+        if not vaultPrompt then
+            task.wait(1)
+            continue
+        end
+
+        -- Vòng lặp mở cửa + loot
+        local looted = false
+        local attemptCount = 0
+
+        while isRunning and not looted and attemptCount < 3 do
+            -- Giữ Unlock Vault cho đến khi prompt đã dùng
+            holdPromptUntilUsed(vaultPrompt)
+
+            -- Chờ tìm ProximityPrompt Loot
+            local waitedLoot = 0
+            local lootPrompt = nil
+            while isRunning and waitedLoot < 3 do
+                lootPrompt = findLootPrompt()
+                if lootPrompt then break end
+                task.wait(0.3)
+                waitedLoot = waitedLoot + 0.3
+            end
+
+            -- Move đến toạ độ Loot
+            if isRunning then
+                moveTo(TOA_DO_LOOT)
+                task.wait(0.3)
+            end
+
+            -- Thử nhấn Loot
+            if isRunning and lootPrompt then
+                pressLoot(lootPrompt)
+                looted = true
+                lootCount = lootCount + 1
+                LootLabel.Text = "Loot: " .. lootCount
+            end
+
+            -- Nếu chưa loot được thì quay lại mở cửa
+            if not looted then
+                moveTo(TOA_DO_CUA)
+                task.wait(0.3)
+                vaultPrompt = findPromptByActionText("Unlock Vault")
+                if not vaultPrompt then break end
+            end
+
+            attemptCount = attemptCount + 1
+        end
+
+        task.wait(1)
+    end
+end
+
+-- Cập nhật thời gian
+task.spawn(function()
+    while true do
+        if isRunning then
+            TimeLabel.Text = string.format("%02d:%02d:%02d", math.floor(totalTime / 3600), math.floor((totalTime % 3600) / 60), totalTime % 60)
+            totalTime = totalTime + 1
+        end
+        task.wait(1)
+    end
+end)
+
+ToggleButton.MouseButton1Click:Connect(function()
+    if isRunning then
+        isRunning = false
+        ToggleButton.Text = "START"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    else
+        isRunning = true
+        ToggleButton.Text = "STOP"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+        task.spawn(mainLoop)
+    end
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+    isRunning = false
+    ScreenGui:Destroy()
+end)
