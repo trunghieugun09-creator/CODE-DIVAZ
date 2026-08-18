@@ -1,4 +1,4 @@
---code so 57: GUI DA NANG - 5 NUT SCRIPT + ANTI AFK + AUTO SPIN NAILS + AUTO SPIN CRATE (DELTAX MOBILE)
+--code số 57 SỬA ĐỔI
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
@@ -41,6 +41,21 @@ local function getBaseMoney()
     return 0
 end
 
+-- Kiểm tra tool chứa từ khoá Flick hoặc Nails trong Backpack
+local function kiemTraToolTrongBackpack()
+    local backpack = nguoi_choi:FindFirstChild("Backpack")
+    if not backpack then return false end
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            local tenTool = tool.Name:lower()
+            if tenTool:find("flick") or tenTool:find("nails") then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 -- SPIN NAILS
 local function spinNails()
     pcall(function()
@@ -53,6 +68,12 @@ end
 
 local function autoSpinNailsLoop()
     while auto_spin_on do
+        -- Dừng nếu đã có tool Flick hoặc Nails trong Backpack
+        if kiemTraToolTrongBackpack() then
+            auto_spin_on = false
+            task.wait(0.1)
+            break
+        end
         local current_money = getBaseMoney()
         if current_money >= 1000 then
             spinNails()
@@ -106,7 +127,7 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = gui_nguoi_choi
 
 local main = Instance.new("Frame", gui) 
-main.Size = UDim2.new(0, 200, 0, 275) -- Thu nhỏ lại
+main.Size = UDim2.new(0, 200, 0, 310)
 main.Position = UDim2.new(0, 20, 0.5, -170) 
 main.BackgroundColor3 = Color3.fromRGB(20, 20, 20) 
 main.BackgroundTransparency = 0.15 
@@ -159,7 +180,7 @@ body.ScrollBarThickness = 3
 body.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
 
 local uiList = Instance.new("UIListLayout", body) 
-uiList.Padding = UDim.new(0, 3) -- Giảm padding
+uiList.Padding = UDim.new(0, 3)
 uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center 
 uiList.SortOrder = Enum.SortOrder.LayoutOrder
 Instance.new("UIPadding", body).PaddingTop = UDim.new(0, 4)
@@ -169,18 +190,18 @@ infoLabel.Size = UDim2.new(1, -16, 0, 16)
 infoLabel.BackgroundTransparency = 1
 infoLabel.Font = Enum.Font.GothamBold
 infoLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-infoLabel.TextSize = 9 -- Nhỏ hơn
+infoLabel.TextSize = 9
 infoLabel.Text = "Nails:0 | Crate:0"
 infoLabel.TextXAlignment = Enum.TextXAlignment.Center
 
 local function taoNut(text, mau, callback)
     local btn = Instance.new("TextButton", body)
-    btn.Size = UDim2.new(1, -16, 0, 28) -- Nhỏ hơn
+    btn.Size = UDim2.new(1, -16, 0, 28)
     btn.BackgroundColor3 = mau
     btn.Text = text
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 9 -- Nhỏ hơn
+    btn.TextSize = 9
     btn.AutoButtonColor = false
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     btn.MouseButton1Click:Connect(callback)
@@ -190,12 +211,12 @@ end
 local function taoToggle(text, mauOn, mauOff, callback)
     local on = false
     local btn = Instance.new("TextButton", body)
-    btn.Size = UDim2.new(1, -16, 0, 28) -- Nhỏ hơn
+    btn.Size = UDim2.new(1, -16, 0, 28)
     btn.BackgroundColor3 = mauOff
     btn.Text = text .. ": OFF"
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 9 -- Nhỏ hơn
+    btn.TextSize = 9
     btn.AutoButtonColor = false
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     btn.MouseButton1Click:Connect(function()
@@ -207,8 +228,6 @@ local function taoToggle(text, mauOn, mauOff, callback)
     return btn
 end
 
--- Gộp các nút Farm lại thành 1 dòng 2 cột? Không, giữ nguyên nhưng thu nhỏ
-
 taoNut("Farm Slay (Chu)", Color3.fromRGB(80, 60, 200), function()
     chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20SLAY%20ACC%20CH%E1%BB%A6", "slay_chu")
 end)
@@ -219,6 +238,10 @@ end)
 
 taoNut("Farm Pizza", Color3.fromRGB(200, 120, 0), function()
     chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20PIZZA", "pizza")
+end)
+
+taoNut("GET Auto Lay Khien", Color3.fromRGB(0, 100, 200), function()
+    chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BGET%5D%20AUTO%20L%E1%BA%A4Y%20KHI%C3%8AN%20DIVAZ", "get_khien")
 end)
 
 taoNut("Giam Vat The", Color3.fromRGB(0, 140, 140), function()
@@ -247,7 +270,6 @@ taoToggle("ANTI AFK", Color3.fromRGB(0, 180, 80), Color3.fromRGB(50, 50, 60), fu
     afk_on = o 
 end)
 
--- Cập nhật CanvasSize
 task.spawn(function()
     while body and body.Parent do
         task.wait(0.1)
@@ -256,7 +278,6 @@ task.spawn(function()
     end
 end)
 
--- Update info
 task.spawn(function()
     while gui and gui.Parent do
         local text = "N:" .. spin_count_nails .. "($" .. money_spent_nails .. ")"
@@ -268,7 +289,7 @@ end)
 
 minBtn.MouseButton1Click:Connect(function() 
     body.Visible = not body.Visible 
-    main.Size = body.Visible and UDim2.new(0, 200, 0, 340) or UDim2.new(0, 200, 0, 30) 
+    main.Size = body.Visible and UDim2.new(0, 200, 0, 310) or UDim2.new(0, 200, 0, 30) 
 end)
 
 close.MouseButton1Click:Connect(function() 
@@ -302,5 +323,3 @@ UIS.InputChanged:Connect(function(i)
         main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y) 
     end 
 end)
-
-print("GUI Da Nang da duoc khoi tao!")
