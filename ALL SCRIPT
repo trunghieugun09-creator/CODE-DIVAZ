@@ -137,10 +137,17 @@ local function giu_prompt(prompt)
 end
 
 local function nhan_loot(prompt)
-    pcall(function() prompt:InputHoldBegin() end)
-    task.wait(1)
-    pcall(function() prompt:InputHoldEnd() end)
-    task.wait(0.3)
+    pcall(function()
+        prompt:InputHoldBegin()
+        task.wait(0.2)
+        prompt:InputHoldEnd()
+        task.wait(0.5)
+        if prompt.Enabled then
+            prompt:InputHoldBegin()
+            task.wait(1)
+            prompt:InputHoldEnd()
+        end
+    end)
 end
 
 local function vong_lap_cuop()
