@@ -1,4 +1,4 @@
---code số 77 - CHỐNG ĐA ĐIỂM CHẠM KHI KÉO GUI, SỬA LOGO KHÔNG HIỆN
+--code số 94 - FULL TIẾNG VIỆT TỰ NHIÊN HƠN
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
@@ -15,58 +15,58 @@ pcall(function()
     if CoreGui:FindFirstChild("A_GUI") then CoreGui:FindFirstChild("A_GUI"):Destroy() end
 end)
 
-local afk_on = false
-local auto_spin_on = false
-local auto_spin_crate_on = false
-local money_spent_nails = 0
-local spin_count_nails = 0
-local money_spent_crate = 0
-local spin_count_crate = 0
-local loot_count = 0
+local chong_afk = false
+local tu_quay_mong = false
+local tu_quay_thung = false
+local tien_quay_mong = 0
+local lan_quay_mong = 0
+local tien_quay_thung = 0
+local lan_quay_thung = 0
+local lan_cuop = 0
 
-local TOA_DO_CUA = Vector3.new(85.5, 7.7, -681.6)
-local TOA_DO_LOOT = Vector3.new(89.6, 7.6, -681.2)
-local TOA_DO_SPAWN = Vector3.new(85.5, 7.7, -681.6)
-local auto_bank_on = false
-local bank_running = false
-local originalSpawnCFrames = {}
-local spawnOverridden = false
+local toa_do_cua = Vector3.new(85.5, 7.7, -681.6)
+local toa_do_loot = Vector3.new(89.6, 7.6, -681.2)
+local toa_do_spawn = Vector3.new(85.5, 7.7, -681.6)
+local tu_cuop_ngan_hang = false
+local dang_cuop = false
+local spawn_goc = {}
+local da_override_spawn = false
 
-local function captureOriginalSpawns()
-    originalSpawnCFrames = {}
+local function luu_spawn_goc()
+    spawn_goc = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.ClassName == "SpawnLocation" then originalSpawnCFrames[obj] = obj.CFrame end
+        if obj.ClassName == "SpawnLocation" then spawn_goc[obj] = obj.CFrame end
     end
 end
 
-local function setSpawnToBank()
-    captureOriginalSpawns()
-    spawnOverridden = true
+local function dat_spawn_ngan_hang()
+    luu_spawn_goc()
+    da_override_spawn = true
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj.ClassName == "SpawnLocation" then
-            pcall(function() obj.CFrame = CFrame.new(TOA_DO_SPAWN) obj.Duration = 0 end)
+            pcall(function() obj.CFrame = CFrame.new(toa_do_spawn) obj.Duration = 0 end)
         end
     end
 end
 
-local function restoreOriginalSpawns()
-    if not spawnOverridden then return end
-    spawnOverridden = false
-    for obj, cf in pairs(originalSpawnCFrames) do
+local function khoi_phuc_spawn()
+    if not da_override_spawn then return end
+    da_override_spawn = false
+    for obj, cf in pairs(spawn_goc) do
         pcall(function() obj.CFrame = cf obj.Duration = 0 end)
     end
-    originalSpawnCFrames = {}
+    spawn_goc = {}
 end
 
-local function bankGetTime()
+local function lay_gio_game()
     local minutesAfterMidnight = Lighting:GetMinutesAfterMidnight()
     local hours = math.floor(minutesAfterMidnight / 60)
     local minutes = math.floor(minutesAfterMidnight % 60)
     return hours, minutes
 end
 
-local function isInBankTimeWindow()
-    local hours, minutes = bankGetTime()
+local function trong_khung_gio_cuop()
+    local hours, minutes = lay_gio_game()
     local totalMinutes = hours * 60 + minutes
     local startWindow = 18 * 60
     local endWindow = 7 * 60
@@ -75,7 +75,7 @@ local function isInBankTimeWindow()
     return false
 end
 
-local function bankMoveTo(targetPos)
+local function di_chuyen_den(targetPos)
     local char = nguoi_choi.Character
     if not char then return false end
     local hum = char:FindFirstChild("Humanoid")
@@ -84,7 +84,7 @@ local function bankMoveTo(targetPos)
     hum:MoveTo(targetPos)
     local timeout = 15
     local waited = 0
-    while auto_bank_on and waited < timeout do
+    while tu_cuop_ngan_hang and waited < timeout do
         local dist = (hrp.Position - targetPos).Magnitude
         if dist < 3 then return true end
         hum:MoveTo(targetPos)
@@ -94,41 +94,41 @@ local function bankMoveTo(targetPos)
     return false
 end
 
-local function bankFindPrompt(actionText)
+local function tim_prompt_theo_hanh_dong(actionText)
     for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("ProximityPrompt") and v.ActionText == actionText then return v end
-    end
-    return nil
-end
-
-local function bankFindLoot()
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("ProximityPrompt") then
-            if v.ActionText == "Loot" or v.Name == "Loot" then return v end
+        if v:IsA("ProximityPrompt") and v.ActionText == actionText and v.Enabled == true then
+            return v
         end
     end
     return nil
 end
 
-local function bankIsPromptUsed(prompt)
-    if not prompt then return true end
-    if prompt.Enabled == false then return true end
-    if prompt.ActionText == "" then return true end
-    if prompt.Parent and prompt.Parent:IsA("BasePart") then
-        if prompt.Parent.Transparency >= 0.9 then return true end
+local function tim_prompt_loot()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") then
+            if (v.ActionText == "Loot" or v.Name == "Loot") and v.Enabled == true then
+                return v
+            end
+        end
     end
-    return false
+    return nil
 end
 
-local function bankHoldPrompt(prompt)
+local function loot_dang_hien()
+    local lootPrompt = tim_prompt_loot()
+    if lootPrompt then return true, lootPrompt end
+    return false, nil
+end
+
+local function giu_prompt(prompt)
     pcall(function() prompt:InputHoldBegin() end)
     local waited = 0
-    while auto_bank_on and waited < 30 do
-        if bankIsPromptUsed(prompt) then
+    while tu_cuop_ngan_hang and waited < 30 do
+        local visible, lootPrompt = loot_dang_hien()
+        if visible and lootPrompt then
             pcall(function() prompt:InputHoldEnd() end)
             return true
         end
-        pcall(function() prompt:InputHoldBegin() end)
         task.wait(0.1)
         waited = waited + 0.1
     end
@@ -136,75 +136,83 @@ local function bankHoldPrompt(prompt)
     return false
 end
 
-local function bankPressLoot(prompt)
-    pcall(function() prompt:InputHoldBegin() task.wait(0.15) prompt:InputHoldEnd() end)
-    return true
+local function nhan_loot(prompt)
+    pcall(function() prompt:InputHoldBegin() end)
+    task.wait(1)
+    pcall(function() prompt:InputHoldEnd() end)
+    task.wait(0.3)
 end
 
-local function bankMainLoop()
-    if bank_running then return end
-    bank_running = true
-    setSpawnToBank()
-    while auto_bank_on do
-        while auto_bank_on do
-            if isInBankTimeWindow() then break end
+local function vong_lap_cuop()
+    if dang_cuop then return end
+    dang_cuop = true
+    dat_spawn_ngan_hang()
+    while tu_cuop_ngan_hang do
+        while tu_cuop_ngan_hang do
+            if trong_khung_gio_cuop() then break end
             task.wait(1)
         end
-        if not auto_bank_on then break end
+        if not tu_cuop_ngan_hang then break end
 
-        bankMoveTo(TOA_DO_CUA)
+        local da_loot = false
+        local so_lan_thu = 0
 
-        local vaultPrompt = bankFindPrompt("Unlock Vault")
-        if not vaultPrompt then
-            task.wait(1)
-            continue
-        end
+        while tu_cuop_ngan_hang and not da_loot and so_lan_thu < 3 and trong_khung_gio_cuop() do
+            local visible, lootPrompt = loot_dang_hien()
 
-        local looted = false
-        local attemptCount = 0
+            if visible and lootPrompt then
+                di_chuyen_den(toa_do_loot)
+                task.wait(0.3)
+                nhan_loot(lootPrompt)
+                da_loot = true
+                lan_cuop = lan_cuop + 1
+                break
+            end
 
-        while auto_bank_on and not looted and attemptCount < 3 and isInBankTimeWindow() do
-            bankHoldPrompt(vaultPrompt)
+            di_chuyen_den(toa_do_cua)
+            local vaultPrompt = tim_prompt_theo_hanh_dong("Unlock Vault")
+            if not vaultPrompt then
+                task.wait(1)
+                break
+            end
+
+            giu_prompt(vaultPrompt)
 
             local waitedLoot = 0
-            local lootPrompt = nil
-            while auto_bank_on and waitedLoot < 3 do
-                lootPrompt = bankFindLoot()
-                if lootPrompt then break end
+            lootPrompt = nil
+            while tu_cuop_ngan_hang and waitedLoot < 5 do
+                local tempVisible, tempPrompt = loot_dang_hien()
+                if tempVisible and tempPrompt then
+                    lootPrompt = tempPrompt
+                    break
+                end
                 task.wait(0.3)
                 waitedLoot = waitedLoot + 0.3
             end
 
-            if auto_bank_on and lootPrompt then
-                bankMoveTo(TOA_DO_LOOT)
+            if tu_cuop_ngan_hang and lootPrompt then
+                di_chuyen_den(toa_do_loot)
                 task.wait(0.3)
-                bankPressLoot(lootPrompt)
-                looted = true
-                loot_count = loot_count + 1
+                nhan_loot(lootPrompt)
+                da_loot = true
+                lan_cuop = lan_cuop + 1
                 break
             end
 
-            if not looted then
-                bankMoveTo(TOA_DO_CUA)
-                task.wait(0.3)
-                vaultPrompt = bankFindPrompt("Unlock Vault")
-                if not vaultPrompt then break end
-            end
-
-            attemptCount = attemptCount + 1
+            so_lan_thu = so_lan_thu + 1
         end
 
-        while auto_bank_on and isInBankTimeWindow() do
+        while tu_cuop_ngan_hang and trong_khung_gio_cuop() do
             task.wait(5)
         end
     end
-    restoreOriginalSpawns()
-    bank_running = false
+    khoi_phuc_spawn()
+    dang_cuop = false
 end
 
 task.spawn(function()
     while true do
-        if afk_on then
+        if chong_afk then
             pcall(function()
                 if math.random(1, 2) == 1 then
                     VirtualInputManager:SendTouchEvent(math.random(100, 700), math.random(100, 400), 0, true, game, 0)
@@ -221,7 +229,7 @@ task.spawn(function()
     end
 end)
 
-local function getBaseMoney()
+local function lay_tien_goc()
     local leaderstats = nguoi_choi:FindFirstChild("leaderstats")
     if leaderstats then
         local moneyValue = leaderstats:FindFirstChild("Money") or leaderstats:FindFirstChild("Cash") or leaderstats:FindFirstChild("Dollars") or leaderstats:FindFirstChild("Points") or leaderstats:FindFirstChild("Coin")
@@ -230,7 +238,7 @@ local function getBaseMoney()
     return 0
 end
 
-local function kiemTraToolTrongBackpack()
+local function kiem_tra_tool_trong_balo()
     local backpack = nguoi_choi:FindFirstChild("Backpack")
     if not backpack then return false end
     for _, tool in ipairs(backpack:GetChildren()) do
@@ -244,58 +252,57 @@ local function kiemTraToolTrongBackpack()
     return false
 end
 
-local function spinNails()
+local function quay_mong()
     pcall(function()
-        local before = getBaseMoney()
+        local before = lay_tien_goc()
         local args = { [1] = { ["Event"] = "SpinWeaponWheel" } }
         game:GetService("ReplicatedStorage").Event:FireServer(unpack(args))
         task.wait(0.2)
-        local after = getBaseMoney()
+        local after = lay_tien_goc()
         local diff = before - after
-        if diff > 0 then money_spent_nails = money_spent_nails + diff else money_spent_nails = money_spent_nails + 1000 end
-        spin_count_nails = spin_count_nails + 1
+        if diff > 0 then tien_quay_mong = tien_quay_mong + diff else tien_quay_mong = tien_quay_mong + 1000 end
+        lan_quay_mong = lan_quay_mong + 1
     end)
 end
 
-local function autoSpinNailsLoop()
-    while auto_spin_on do
-        if kiemTraToolTrongBackpack() then
-            auto_spin_on = false
+local function vong_lap_quay_mong()
+    while tu_quay_mong do
+        if kiem_tra_tool_trong_balo() then
+            tu_quay_mong = false
             break
         end
-        local current_money = getBaseMoney()
-        if current_money >= 1000 then spinNails() task.wait(0.5) else task.wait(1) end
+        local current_money = lay_tien_goc()
+        if current_money >= 1000 then quay_mong() task.wait(0.5) else task.wait(1) end
     end
 end
 
-local function spinCrate()
+local function quay_thung()
     pcall(function()
-        local before = getBaseMoney()
+        local before = lay_tien_goc()
         local args = { [1] = { ["Event"] = "SpinWeaponCrate", ["Crate"] = "Elemental Weapon Crate" } }
         game:GetService("ReplicatedStorage").Event:FireServer(unpack(args))
         task.wait(0.2)
-        local after = getBaseMoney()
+        local after = lay_tien_goc()
         local diff = before - after
-        if diff > 0 then money_spent_crate = money_spent_crate + diff else money_spent_crate = money_spent_crate + 8000 end
-        spin_count_crate = spin_count_crate + 1
+        if diff > 0 then tien_quay_thung = tien_quay_thung + diff else tien_quay_thung = tien_quay_thung + 8000 end
+        lan_quay_thung = lan_quay_thung + 1
     end)
 end
 
-local function autoSpinCrateLoop()
-    while auto_spin_crate_on do
-        local current_money = getBaseMoney()
-        if current_money >= 8000 then spinCrate() task.wait(0.5) else task.wait(1) end
+local function vong_lap_quay_thung()
+    while tu_quay_thung do
+        local current_money = lay_tien_goc()
+        if current_money >= 8000 then quay_thung() task.wait(0.5) else task.wait(1) end
     end
 end
 
 local da_chay = {}
-local function chay(url, ten)
+local function chay_script(url, ten)
     if da_chay[ten] then return end
     da_chay[ten] = true
     task.spawn(function() pcall(function() loadstring(game:HttpGet(url))() end) end)
 end
 
--- GUI CHÍNH
 local SG = Instance.new("ScreenGui")
 SG.Name = "A_GUI"
 SG.ResetOnSpawn = false
@@ -318,8 +325,8 @@ MFC.CornerRadius = UDim.new(0, 10)
 MFC.Parent = MF
 
 local UIStrokeMain = Instance.new("UIStroke")
-UIStrokeMain.Color = Color3.fromRGB(60, 60, 65)
-UIStrokeMain.Thickness = 1
+UIStrokeMain.Color = Color3.fromRGB(0, 0, 0)
+UIStrokeMain.Thickness = 2
 UIStrokeMain.Parent = MF
 
 local TB = Instance.new("Frame")
@@ -346,7 +353,7 @@ local TT = Instance.new("TextLabel")
 TT.Size = UDim2.new(1, -130, 1, 0)
 TT.Position = UDim2.new(0, 14, 0, 0)
 TT.BackgroundTransparency = 1
-TT.Text = "SCRIPT BY PAW - VER 1.3.3"
+TT.Text = "SCRIPT BY PAW - VER 1.4.2"
 TT.TextColor3 = Color3.fromRGB(255, 255, 255)
 TT.Font = Enum.Font.GothamMedium
 TT.TextSize = 12
@@ -405,7 +412,7 @@ LogoImage.Name = "LogoImage"
 LogoImage.Size = UDim2.new(0, 40, 0, 40)
 LogoImage.Position = UDim2.new(0.5, -20, 0.5, -20)
 LogoImage.BackgroundTransparency = 1
-LogoImage.Image = "https://cdn.discordapp.com/attachments/1523592927106961481/1539157319437516880/fa741ee80f865a0f801a3ca1c4af5a33_1783776430379.jpg?ex=6a854b75&is=6a83f9f5&hm=8b513114c40ce6f8b9e97604fded5e80f049f8e2c73a55b5ea035a8afc0daf85&"
+LogoImage.Image = "https://sf-static.upanhlaylink.com/img/image_20260819bc1080be64391cd76c2b5dfb474b175b.jpg"
 LogoImage.ScaleType = Enum.ScaleType.Fit
 LogoImage.Visible = true
 LogoImage.ZIndex = 11
@@ -444,7 +451,7 @@ CAC.Parent = CA
 
 local tabs, curTab = {}, nil
 
-local function Card(p, t, d, giaTri)
+local function tao_the(p, t, d, giaTri)
     local c = Instance.new("Frame")
     c.Size = UDim2.new(1, 0, 0, 46)
     c.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
@@ -490,7 +497,7 @@ local function Card(p, t, d, giaTri)
     return c, nil
 end
 
-local function Toggle(p)
+local function tao_nut_bat_tat(p)
     local tf = Instance.new("Frame")
     tf.Size = UDim2.new(0, 32, 0, 18)
     tf.Position = UDim2.new(1, -42, 0.5, -9)
@@ -525,7 +532,7 @@ local function Toggle(p)
     return {OnChange = function(_, c) cb = c end}
 end
 
-local function UseBtn(p)
+local function tao_nut_dung(p)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(0, 48, 0, 22)
     b.Position = UDim2.new(1, -58, 0.5, -11)
@@ -542,7 +549,7 @@ local function UseBtn(p)
     return b
 end
 
-local function Separator(p, text)
+local function tao_phan_cach(p, text)
     local sep = Instance.new("TextLabel")
     sep.Size = UDim2.new(1, 0, 0, 18)
     sep.BackgroundTransparency = 1
@@ -555,17 +562,17 @@ local function Separator(p, text)
     return sep
 end
 
-local nailGiaLabel = nil
-local crateGiaLabel = nil
-local lootGiaLabel = nil
+local nhan_quay_mong = nil
+local nhan_quay_thung = nil
+local nhan_lan_cuop = nil
 
-local function BuildAllContent()
+local function xay_dung_noi_dung()
     for _, td in ipairs(tabs) do
         if td.C then td.C:Destroy() end
     end
     tabs = {}
 
-    local function makeTabButton(icon, name, order)
+    local function tao_nut_tab(icon, name, order)
         local b = Instance.new("TextButton")
         b.Size = UDim2.new(1, -4, 0, 28)
         b.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
@@ -606,71 +613,71 @@ local function BuildAllContent()
     sl1.SortOrder = Enum.SortOrder.LayoutOrder
     sl1.Parent = sf1
 
-    Separator(sf1, "FARM")
+    tao_phan_cach(sf1, "FARM")
 
-    UseBtn(Card(sf1, "FARM SLAY (CHỦ)", "Auto farm Slay acc chủ")).MouseButton1Click:Connect(function()
-        chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20SLAY%20ACC%20CH%E1%BB%A6", "slay_chu")
+    tao_nut_dung(tao_the(sf1, "FARM SLAY (CHỦ)", "Auto farm Slay acc chủ")).MouseButton1Click:Connect(function()
+        chay_script("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20SLAY%20ACC%20CH%E1%BB%A6", "slay_chu")
     end)
-    UseBtn(Card(sf1, "FARM SLAY (CLONE)", "Auto farm Slay acc clone")).MouseButton1Click:Connect(function()
-        chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20SLAY%20ACC%20CLONE", "slay_clone")
+    tao_nut_dung(tao_the(sf1, "FARM SLAY (CLONE)", "Auto farm Slay acc clone")).MouseButton1Click:Connect(function()
+        chay_script("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20SLAY%20ACC%20CLONE", "slay_clone")
     end)
-    UseBtn(Card(sf1, "FARM PIZZA", "Auto farm Pizza")).MouseButton1Click:Connect(function()
-        chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20PIZZA", "pizza")
+    tao_nut_dung(tao_the(sf1, "FARM PIZZA", "Auto farm Pizza")).MouseButton1Click:Connect(function()
+        chay_script("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20PIZZA", "pizza")
     end)
 
-    Separator(sf1, "AUTO")
+    tao_phan_cach(sf1, "AUTO")
 
-    local bankCard, bankGia = Card(sf1, "AUTO NGÂN HÀNG", "Auto lấy khiên Divaz (18:00 - 7:00)", "Loot: 0")
-    lootGiaLabel = bankGia
-    Toggle(bankCard):OnChange(function(o)
-        auto_bank_on = o
-        if auto_bank_on then
-            task.spawn(bankMainLoop)
+    local the_cuop, nhan_cuop = tao_the(sf1, "AUTO NGÂN HÀNG", "Auto lấy khiên Divaz (18:00 - 7:00)", "Loot: 0")
+    nhan_lan_cuop = nhan_cuop
+    tao_nut_bat_tat(the_cuop):OnChange(function(o)
+        tu_cuop_ngan_hang = o
+        if tu_cuop_ngan_hang then
+            task.spawn(vong_lap_cuop)
         else
-            restoreOriginalSpawns()
-            bank_running = false
+            khoi_phuc_spawn()
+            dang_cuop = false
         end
     end)
 
-    local nailCard, nailGia = Card(sf1, "AUTO QUAY MÓNG", "Dừng khi có tool Flick hoặc Nails", "0 lần - 0đ")
-    nailGiaLabel = nailGia
-    Toggle(nailCard):OnChange(function(o)
-        auto_spin_on = o
-        if auto_spin_on then
-            money_spent_nails = 0
-            spin_count_nails = 0
-            task.spawn(autoSpinNailsLoop)
+    local the_mong, nhan_mong = tao_the(sf1, "AUTO QUAY MÓNG", "Dừng khi có tool Flick hoặc Nails", "0 lần - 0đ")
+    nhan_quay_mong = nhan_mong
+    tao_nut_bat_tat(the_mong):OnChange(function(o)
+        tu_quay_mong = o
+        if tu_quay_mong then
+            tien_quay_mong = 0
+            lan_quay_mong = 0
+            task.spawn(vong_lap_quay_mong)
         end
     end)
 
-    local crateCard, crateGia = Card(sf1, "AUTO QUAY THÙNG ELEMENTAL", "Auto quay Elemental Weapon Crate", "0 lần - 0đ")
-    crateGiaLabel = crateGia
-    Toggle(crateCard):OnChange(function(o)
-        auto_spin_crate_on = o
-        if auto_spin_crate_on then
-            money_spent_crate = 0
-            spin_count_crate = 0
-            task.spawn(autoSpinCrateLoop)
+    local the_thung, nhan_thung = tao_the(sf1, "AUTO QUAY THÙNG ELEMENTAL", "Auto quay Elemental Weapon Crate", "0 lần - 0đ")
+    nhan_quay_thung = nhan_thung
+    tao_nut_bat_tat(the_thung):OnChange(function(o)
+        tu_quay_thung = o
+        if tu_quay_thung then
+            tien_quay_thung = 0
+            lan_quay_thung = 0
+            task.spawn(vong_lap_quay_thung)
         end
     end)
 
     task.spawn(function()
         while SG and SG.Parent do
-            if nailGiaLabel and nailGiaLabel.Parent then
-                nailGiaLabel.Text = spin_count_nails .. " lần - " .. money_spent_nails .. "đ"
+            if nhan_quay_mong and nhan_quay_mong.Parent then
+                nhan_quay_mong.Text = lan_quay_mong .. " lần - " .. tien_quay_mong .. "đ"
             end
-            if crateGiaLabel and crateGiaLabel.Parent then
-                crateGiaLabel.Text = spin_count_crate .. " lần - " .. money_spent_crate .. "đ"
+            if nhan_quay_thung and nhan_quay_thung.Parent then
+                nhan_quay_thung.Text = lan_quay_thung .. " lần - " .. tien_quay_thung .. "đ"
             end
-            if lootGiaLabel and lootGiaLabel.Parent then
-                lootGiaLabel.Text = "Loot: " .. loot_count
+            if nhan_lan_cuop and nhan_lan_cuop.Parent then
+                nhan_lan_cuop.Text = "Loot: " .. lan_cuop
             end
             task.wait(0.5)
         end
     end)
 
     sf1.CanvasSize = UDim2.new(0, 0, 0, #sf1:GetChildren() * 52 + 4)
-    local tb1 = makeTabButton("💅🏻", "Divaz", 1)
+    local tb1 = tao_nut_tab("💅🏻", "Divaz", 1)
 
     local cf2 = Instance.new("Frame")
     cf2.Name = "TabTienIch"
@@ -690,16 +697,16 @@ local function BuildAllContent()
     sl2.SortOrder = Enum.SortOrder.LayoutOrder
     sl2.Parent = sf2
 
-    UseBtn(Card(sf2, "GIẢM LAG", "Giảm vật thể map")).MouseButton1Click:Connect(function()
-        chay("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BEXPLORER%5D%20GI%E1%BA%A2M%20V%E1%BA%ACT%20TH%E1%BB%82%20MAP", "giam_vat_the")
+    tao_nut_dung(tao_the(sf2, "GIẢM LAG", "Giảm vật thể map")).MouseButton1Click:Connect(function()
+        chay_script("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BEXPLORER%5D%20GI%E1%BA%A2M%20V%E1%BA%ACT%20TH%E1%BB%82%20MAP", "giam_vat_the")
     end)
 
-    Toggle(Card(sf2, "ANTI AFK", "Chống AFK tự động")):OnChange(function(o)
-        afk_on = o
+    tao_nut_bat_tat(tao_the(sf2, "CHỐNG AFK", "Chống AFK tự động")):OnChange(function(o)
+        chong_afk = o
     end)
 
     sf2.CanvasSize = UDim2.new(0, 0, 0, #sf2:GetChildren() * 52 + 4)
-    local tb2 = makeTabButton("⚙️", "Tiện Ích", 2)
+    local tb2 = tao_nut_tab("⚙️", "Tiện Ích", 2)
 
     tabs = { {B = tb1, C = cf1}, {B = tb2, C = cf2} }
     for _, td in ipairs(tabs) do
@@ -721,9 +728,8 @@ local function BuildAllContent()
     curTab.C.Visible = true
 end
 
-BuildAllContent()
+xay_dung_noi_dung()
 
--- DRAG + THU NHỎ + CHỐNG ĐA ĐIỂM CHẠM
 local isMin, curTween = false, nil
 local bigPos = MF.Position
 local smallPos = UDim2.new(bigPos.X.Scale, bigPos.X.Offset + 224, bigPos.Y.Scale, bigPos.Y.Offset + 134)
@@ -739,7 +745,7 @@ local function TweenGUI(ts, tp, cr)
     sT.Completed:Connect(function() curTween = nil end)
 end
 
-local function Minimize()
+local function thu_nho()
     if isMin then return end
     isMin = true
     bigPos = MF.Position
@@ -756,7 +762,7 @@ local function Minimize()
     LogoImage.Visible = true
 end
 
-local function Maximize()
+local function phong_to()
     if not isMin then return end
     isMin = false
     smallPos = MF.Position
@@ -774,16 +780,16 @@ local function Maximize()
 end
 
 MinB.MouseButton1Click:Connect(function()
-    if isMin then Maximize() else Minimize() end
+    if isMin then phong_to() else thu_nho() end
 end)
-ExpandBtn.MouseButton1Click:Connect(Maximize)
+ExpandBtn.MouseButton1Click:Connect(phong_to)
 
 ClsB.MouseButton1Click:Connect(function()
-    afk_on = false
-    auto_spin_on = false
-    auto_spin_crate_on = false
-    auto_bank_on = false
-    restoreOriginalSpawns()
+    chong_afk = false
+    tu_quay_mong = false
+    tu_quay_thung = false
+    tu_cuop_ngan_hang = false
+    khoi_phuc_spawn()
     SG:Destroy()
 end)
 
@@ -809,7 +815,7 @@ local function onInputBegan(input)
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 if input == activeInput then
-                    if isMin and not hasMoved then Maximize() end
+                    if isMin and not hasMoved then phong_to() end
                     if hasMoved then
                         if isMin then smallPos = MF.Position else bigPos = MF.Position end
                     end
