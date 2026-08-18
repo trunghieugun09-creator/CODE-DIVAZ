@@ -1,4 +1,4 @@
---code số 94 - FULL TIẾNG VIỆT TỰ NHIÊN HƠN
+--code số 97 - FULL FIX: DELAY 1 GIÂY TRƯỚC KHI NHẤN LOOT, CHỈ NHẤN 1 LẦN, KHÔNG DỪNG KHI DI CHUYỂN LỘN, LOGO DÙNG RBXASSET
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
@@ -138,15 +138,10 @@ end
 
 local function nhan_loot(prompt)
     pcall(function()
+        task.wait(1)
         prompt:InputHoldBegin()
-        task.wait(0.2)
-        prompt:InputHoldEnd()
         task.wait(0.5)
-        if prompt.Enabled then
-            prompt:InputHoldBegin()
-            task.wait(1)
-            prompt:InputHoldEnd()
-        end
+        prompt:InputHoldEnd()
     end)
 end
 
@@ -360,7 +355,7 @@ local TT = Instance.new("TextLabel")
 TT.Size = UDim2.new(1, -130, 1, 0)
 TT.Position = UDim2.new(0, 14, 0, 0)
 TT.BackgroundTransparency = 1
-TT.Text = "SCRIPT BY PAW - VER 1.4.2"
+TT.Text = "SCRIPT BY PAW - VER 1.4.3"
 TT.TextColor3 = Color3.fromRGB(255, 255, 255)
 TT.Font = Enum.Font.GothamMedium
 TT.TextSize = 12
@@ -419,7 +414,7 @@ LogoImage.Name = "LogoImage"
 LogoImage.Size = UDim2.new(0, 40, 0, 40)
 LogoImage.Position = UDim2.new(0.5, -20, 0.5, -20)
 LogoImage.BackgroundTransparency = 1
-LogoImage.Image = "https://files.catbox.moe/54715b.jpg"
+LogoImage.Image = "rbxassetid://97024523196863"
 LogoImage.ScaleType = Enum.ScaleType.Fit
 LogoImage.Visible = true
 LogoImage.ZIndex = 11
