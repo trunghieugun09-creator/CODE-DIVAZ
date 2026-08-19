@@ -1005,7 +1005,7 @@ local function xay_dung_noi_dung()
     avt_game.Position = UDim2.new(0, 10, .5, -25)
     avt_game.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
     avt_game.BackgroundTransparency = .1
-    avt_game.Image = "rbxassetid://0"
+    avt_game.Image = "rbxassetid://" .. tostring(MarketplaceService:GetProductInfo(game.PlaceId).IconImageAssetId or 0)
     avt_game.Parent = khung_game
 
     local goc_avt_game = Instance.new("UICorner")
@@ -1022,7 +1022,7 @@ local function xay_dung_noi_dung()
     ten_game.Size = UDim2.new(1, -150, 0, 20)
     ten_game.Position = UDim2.new(0, 70, 0, 10)
     ten_game.BackgroundTransparency = 1
-    ten_game.Text = "Game: " .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+    ten_game.Text = "" .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
     ten_game.TextColor3 = Color3.fromRGB(255, 255, 255)
     ten_game.Font = font_mac_dinh
     ten_game.TextSize = 9
@@ -1045,7 +1045,7 @@ local function xay_dung_noi_dung()
     jobid_game.Size = UDim2.new(1, -150, 0, 14)
     jobid_game.Position = UDim2.new(0, 70, 0, 48)
     jobid_game.BackgroundTransparency = 1
-    jobid_game.Text = "JobId: " .. game.JobId
+    jobid_game.Text = "JOBID: " .. game.JobId
     jobid_game.TextColor3 = Color3.fromRGB(135, 135, 150)
     jobid_game.Font = font_mac_dinh
     jobid_game.TextSize = 8
@@ -1068,7 +1068,7 @@ local function xay_dung_noi_dung()
     gio_title.Size = UDim2.new(1, 0, 0, 12)
     gio_title.Position = UDim2.new(0, 0, 0, 4)
     gio_title.BackgroundTransparency = 1
-    gio_title.Text = "GIỜ MAP"
+    gio_title.Text = "ĐỒNG HỒ"
     gio_title.TextColor3 = Color3.fromRGB(140, 140, 155)
     gio_title.Font = font_mac_dinh
     gio_title.TextSize = 7
