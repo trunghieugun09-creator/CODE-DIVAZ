@@ -101,7 +101,7 @@ local function sendWebhook(title, message, color)
 
     local data = {
         ["username"] = "PawLovY_Notification🔔",
-        ["avatar_url"] = "https://cdn.discordapp.com/attachments/1523592927106961481/1539157319437516880/fa741ee80f865a0f801a3ca1c4af5a33_1783776430379.jpg?ex=6a869cf5&is=6a854b75&hm=2e3f88090be2c761596e7c9552188c0076b5ee33d1e32cbf6f3406803082e616&",
+        ["avatar_url"] = "https://cdn.discordapp.com/attachments/1523592927106961481/1539578156317671497/a750644174745cd906681830da3a3873.jpg?ex=6a86d364&is=6a8581e4&hm=1790432d05f96d7cc5781ab01171fdfaedbc41ea1c343477729332026baa8e7f&",
         ["embeds"] = {
             embed
         }
