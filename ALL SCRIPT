@@ -1,18 +1,24 @@
---code số 97 - FULL FIX: DELAY 1 GIÂY TRƯỚC KHI NHẤN LOOT, CHỈ NHẤN 1 LẦN, KHÔNG DỪNG KHI DI CHUYỂN LỘN, LOGO DÙNG RBXASSET
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local ContextActionService = game:GetService("ContextActionService")
-local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local nguoi_choi = Players.LocalPlayer
 local gui_nguoi_choi = nguoi_choi:FindFirstChild("PlayerGui") or nguoi_choi:WaitForChild("PlayerGui")
 
+local font_pixel = Enum.Font.Arcade
+local font_thuong = Enum.Font.Gotham
+local font_dam = Enum.Font.GothamBold
+local font_mac_dinh = Enum.Font.FredokaOne
+
 pcall(function()
-    if CoreGui:FindFirstChild("A_GUI") then CoreGui:FindFirstChild("A_GUI"):Destroy() end
+    if CoreGui:FindFirstChild("A_GUI") then
+        CoreGui:FindFirstChild("A_GUI"):Destroy()
+    end
 end)
 
 local chong_afk = false
@@ -27,15 +33,19 @@ local lan_cuop = 0
 local toa_do_cua = Vector3.new(85.5, 7.7, -681.6)
 local toa_do_loot = Vector3.new(89.6, 7.6, -681.2)
 local toa_do_spawn = Vector3.new(85.5, 7.7, -681.6)
+
 local tu_cuop_ngan_hang = false
 local dang_cuop = false
 local spawn_goc = {}
 local da_override_spawn = false
+local thoi_diem_chay = os.time()
 
 local function luu_spawn_goc()
     spawn_goc = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.ClassName == "SpawnLocation" then spawn_goc[obj] = obj.CFrame end
+        if obj.ClassName == "SpawnLocation" then
+            spawn_goc[obj] = obj.CFrame
+        end
     end
 end
 
@@ -44,7 +54,10 @@ local function dat_spawn_ngan_hang()
     da_override_spawn = true
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj.ClassName == "SpawnLocation" then
-            pcall(function() obj.CFrame = CFrame.new(toa_do_spawn) obj.Duration = 0 end)
+            pcall(function()
+                obj.CFrame = CFrame.new(toa_do_spawn)
+                obj.Duration = 0
+            end)
         end
     end
 end
@@ -53,25 +66,26 @@ local function khoi_phuc_spawn()
     if not da_override_spawn then return end
     da_override_spawn = false
     for obj, cf in pairs(spawn_goc) do
-        pcall(function() obj.CFrame = cf obj.Duration = 0 end)
+        pcall(function()
+            obj.CFrame = cf
+            obj.Duration = 0
+        end)
     end
     spawn_goc = {}
 end
 
 local function lay_gio_game()
-    local minutesAfterMidnight = Lighting:GetMinutesAfterMidnight()
-    local hours = math.floor(minutesAfterMidnight / 60)
-    local minutes = math.floor(minutesAfterMidnight % 60)
-    return hours, minutes
+    local m = Lighting:GetMinutesAfterMidnight()
+    local h = math.floor(m / 60)
+    local mi = math.floor(m % 60)
+    return h, mi
 end
 
 local function trong_khung_gio_cuop()
-    local hours, minutes = lay_gio_game()
-    local totalMinutes = hours * 60 + minutes
-    local startWindow = 18 * 60
-    local endWindow = 7 * 60
-    if totalMinutes >= startWindow then return true end
-    if totalMinutes < endWindow then return true end
+    local h, mi = lay_gio_game()
+    local t = h * 60 + mi
+    if t >= 1080 then return true end
+    if t < 420 then return true end
     return false
 end
 
@@ -82,57 +96,57 @@ local function di_chuyen_den(targetPos)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hum or not hrp then return false end
     hum:MoveTo(targetPos)
-    local timeout = 15
     local waited = 0
-    while tu_cuop_ngan_hang and waited < timeout do
-        local dist = (hrp.Position - targetPos).Magnitude
-        if dist < 3 then return true end
+    while tu_cuop_ngan_hang and waited < 15 do
+        if (hrp.Position - targetPos).Magnitude < 3 then return true end
         hum:MoveTo(targetPos)
-        task.wait(0.5)
-        waited = waited + 0.5
+        task.wait(.5)
+        waited += .5
     end
     return false
 end
 
 local function tim_prompt_theo_hanh_dong(actionText)
-    for _, v in pairs(workspace:GetDescendants()) do
+    for _, v in ipairs(workspace:GetDescendants()) do
         if v:IsA("ProximityPrompt") and v.ActionText == actionText and v.Enabled == true then
             return v
         end
     end
-    return nil
 end
 
 local function tim_prompt_loot()
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("ProximityPrompt") then
-            if (v.ActionText == "Loot" or v.Name == "Loot") and v.Enabled == true then
-                return v
-            end
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") and (v.ActionText == "Loot" or v.Name == "Loot") and v.Enabled == true then
+            return v
         end
     end
-    return nil
 end
 
 local function loot_dang_hien()
-    local lootPrompt = tim_prompt_loot()
-    if lootPrompt then return true, lootPrompt end
+    local p = tim_prompt_loot()
+    if p then return true, p end
     return false, nil
 end
 
 local function giu_prompt(prompt)
-    pcall(function() prompt:InputHoldBegin() end)
+    pcall(function()
+        prompt:InputHoldBegin()
+    end)
     local waited = 0
     while tu_cuop_ngan_hang and waited < 30 do
-        local visible, lootPrompt = loot_dang_hien()
-        if visible and lootPrompt then
-            pcall(function() prompt:InputHoldEnd() end)
+        local visible, p = loot_dang_hien()
+        if visible and p then
+            pcall(function()
+                prompt:InputHoldEnd()
+            end)
             return true
         end
-        task.wait(0.1)
-        waited = waited + 0.1
+        task.wait(.1)
+        waited += .1
     end
-    pcall(function() prompt:InputHoldEnd() end)
+    pcall(function()
+        prompt:InputHoldEnd()
+    end)
     return false
 end
 
@@ -140,7 +154,7 @@ local function nhan_loot(prompt)
     pcall(function()
         task.wait(1)
         prompt:InputHoldBegin()
-        task.wait(0.5)
+        task.wait(.5)
         prompt:InputHoldEnd()
     end)
 end
@@ -155,55 +169,46 @@ local function vong_lap_cuop()
             task.wait(1)
         end
         if not tu_cuop_ngan_hang then break end
-
         local da_loot = false
         local so_lan_thu = 0
-
         while tu_cuop_ngan_hang and not da_loot and so_lan_thu < 3 and trong_khung_gio_cuop() do
             local visible, lootPrompt = loot_dang_hien()
-
             if visible and lootPrompt then
                 di_chuyen_den(toa_do_loot)
-                task.wait(0.3)
+                task.wait(.3)
                 nhan_loot(lootPrompt)
                 da_loot = true
-                lan_cuop = lan_cuop + 1
+                lan_cuop += 1
                 break
             end
-
             di_chuyen_den(toa_do_cua)
             local vaultPrompt = tim_prompt_theo_hanh_dong("Unlock Vault")
             if not vaultPrompt then
                 task.wait(1)
                 break
             end
-
             giu_prompt(vaultPrompt)
-
             local waitedLoot = 0
             lootPrompt = nil
             while tu_cuop_ngan_hang and waitedLoot < 5 do
-                local tempVisible, tempPrompt = loot_dang_hien()
-                if tempVisible and tempPrompt then
-                    lootPrompt = tempPrompt
+                local tv, tp = loot_dang_hien()
+                if tv and tp then
+                    lootPrompt = tp
                     break
                 end
-                task.wait(0.3)
-                waitedLoot = waitedLoot + 0.3
+                task.wait(.3)
+                waitedLoot += .3
             end
-
             if tu_cuop_ngan_hang and lootPrompt then
                 di_chuyen_den(toa_do_loot)
-                task.wait(0.3)
+                task.wait(.3)
                 nhan_loot(lootPrompt)
                 da_loot = true
-                lan_cuop = lan_cuop + 1
+                lan_cuop += 1
                 break
             end
-
-            so_lan_thu = so_lan_thu + 1
+            so_lan_thu += 1
         end
-
         while tu_cuop_ngan_hang and trong_khung_gio_cuop() do
             task.wait(5)
         end
@@ -218,11 +223,11 @@ task.spawn(function()
             pcall(function()
                 if math.random(1, 2) == 1 then
                     VirtualInputManager:SendTouchEvent(math.random(100, 700), math.random(100, 400), 0, true, game, 0)
-                    task.wait(0.015)
+                    task.wait(.015)
                     VirtualInputManager:SendTouchEvent(100, 100, 0, false, game, 0)
                 else
                     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
-                    task.wait(0.03)
+                    task.wait(.03)
                     VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
                 end
             end)
@@ -232,10 +237,10 @@ task.spawn(function()
 end)
 
 local function lay_tien_goc()
-    local leaderstats = nguoi_choi:FindFirstChild("leaderstats")
-    if leaderstats then
-        local moneyValue = leaderstats:FindFirstChild("Money") or leaderstats:FindFirstChild("Cash") or leaderstats:FindFirstChild("Dollars") or leaderstats:FindFirstChild("Points") or leaderstats:FindFirstChild("Coin")
-        if moneyValue then return moneyValue.Value end
+    local ls = nguoi_choi:FindFirstChild("leaderstats")
+    if ls then
+        local mv = ls:FindFirstChild("Money") or ls:FindFirstChild("Cash") or ls:FindFirstChild("Dollars") or ls:FindFirstChild("Points") or ls:FindFirstChild("Coin")
+        if mv then return mv.Value end
     end
     return 0
 end
@@ -245,10 +250,8 @@ local function kiem_tra_tool_trong_balo()
     if not backpack then return false end
     for _, tool in ipairs(backpack:GetChildren()) do
         if tool:IsA("Tool") then
-            local tenTool = tool.Name:lower()
-            if tenTool:find("flick") or tenTool:find("nails") then
-                return true
-            end
+            local n = tool.Name:lower()
+            if n:find("flick") or n:find("nails") then return true end
         end
     end
     return false
@@ -257,13 +260,21 @@ end
 local function quay_mong()
     pcall(function()
         local before = lay_tien_goc()
-        local args = { [1] = { ["Event"] = "SpinWeaponWheel" } }
+        local args = {
+            [1] = {
+                ["Event"] = "SpinWeaponWheel"
+            }
+        }
         game:GetService("ReplicatedStorage").Event:FireServer(unpack(args))
-        task.wait(0.2)
+        task.wait(.2)
         local after = lay_tien_goc()
         local diff = before - after
-        if diff > 0 then tien_quay_mong = tien_quay_mong + diff else tien_quay_mong = tien_quay_mong + 1000 end
-        lan_quay_mong = lan_quay_mong + 1
+        if diff > 0 then
+            tien_quay_mong += diff
+        else
+            tien_quay_mong += 1000
+        end
+        lan_quay_mong += 1
     end)
 end
 
@@ -274,27 +285,46 @@ local function vong_lap_quay_mong()
             break
         end
         local current_money = lay_tien_goc()
-        if current_money >= 1000 then quay_mong() task.wait(0.5) else task.wait(1) end
+        if current_money >= 1000 then
+            quay_mong()
+            task.wait(.5)
+        else
+            task.wait(1)
+        end
     end
 end
 
 local function quay_thung()
     pcall(function()
         local before = lay_tien_goc()
-        local args = { [1] = { ["Event"] = "SpinWeaponCrate", ["Crate"] = "Elemental Weapon Crate" } }
+        local args = {
+            [1] = {
+                ["Event"] = "SpinWeaponCrate",
+                ["Crate"] = "Elemental Weapon Crate"
+            }
+        }
         game:GetService("ReplicatedStorage").Event:FireServer(unpack(args))
-        task.wait(0.2)
+        task.wait(.2)
         local after = lay_tien_goc()
         local diff = before - after
-        if diff > 0 then tien_quay_thung = tien_quay_thung + diff else tien_quay_thung = tien_quay_thung + 8000 end
-        lan_quay_thung = lan_quay_thung + 1
+        if diff > 0 then
+            tien_quay_thung += diff
+        else
+            tien_quay_thung += 8000
+        end
+        lan_quay_thung += 1
     end)
 end
 
 local function vong_lap_quay_thung()
     while tu_quay_thung do
         local current_money = lay_tien_goc()
-        if current_money >= 8000 then quay_thung() task.wait(0.5) else task.wait(1) end
+        if current_money >= 8000 then
+            quay_thung()
+            task.wait(.5)
+        else
+            task.wait(1)
+        end
     end
 end
 
@@ -302,7 +332,11 @@ local da_chay = {}
 local function chay_script(url, ten)
     if da_chay[ten] then return end
     da_chay[ten] = true
-    task.spawn(function() pcall(function() loadstring(game:HttpGet(url))() end) end)
+    task.spawn(function()
+        pcall(function()
+            loadstring(game:HttpGet(url))()
+        end)
+    end)
 end
 
 local SG = Instance.new("ScreenGui")
@@ -313,10 +347,10 @@ SG.Parent = CoreGui
 
 local MF = Instance.new("Frame")
 MF.Name = "MainFrame"
-MF.Size = UDim2.new(0, 500, 0, 320)
-MF.Position = UDim2.new(0.5, -250, 0.5, -160)
+MF.Size = UDim2.new(0, 52, 0, 52)
+MF.Position = UDim2.new(.5, -26, .1, 0)
 MF.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MF.BackgroundTransparency = 0.2
+MF.BackgroundTransparency = .2
 MF.BorderSizePixel = 0
 MF.ClipsDescendants = true
 MF.Active = true
@@ -333,9 +367,9 @@ UIStrokeMain.Parent = MF
 
 local TB = Instance.new("Frame")
 TB.Name = "TitleBar"
-TB.Size = UDim2.new(1, 0, 0, 34)
-TB.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
-TB.BackgroundTransparency = 0.2
+TB.Size = UDim2.new(1, 0, 1, 0)
+TB.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+TB.BackgroundTransparency = .2
 TB.BorderSizePixel = 0
 TB.Parent = MF
 
@@ -344,53 +378,70 @@ TBC.CornerRadius = UDim.new(0, 10)
 TBC.Parent = TB
 
 local TBCover = Instance.new("Frame")
-TBCover.Size = UDim2.new(1, 0, 0, 10)
-TBCover.Position = UDim2.new(0, 0, 1, -10)
-TBCover.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
-TBCover.BackgroundTransparency = 0.2
+TBCover.Size = UDim2.new(1, 0, 0, 6)
+TBCover.Position = UDim2.new(0, 0, 1, -6)
+TBCover.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+TBCover.BackgroundTransparency = .2
 TBCover.BorderSizePixel = 0
 TBCover.Parent = TB
 
-local TT = Instance.new("TextLabel")
-TT.Size = UDim2.new(1, -130, 1, 0)
-TT.Position = UDim2.new(0, 14, 0, 0)
-TT.BackgroundTransparency = 1
-TT.Text = "SCRIPT BY PAW - VER 1.4.3"
-TT.TextColor3 = Color3.fromRGB(255, 255, 255)
-TT.Font = Enum.Font.GothamMedium
-TT.TextSize = 12
-TT.TextXAlignment = Enum.TextXAlignment.Left
-TT.Parent = TB
-
 local TTBackground = Instance.new("Frame")
-TTBackground.Size = UDim2.new(0, 150, 0, 18)
-TTBackground.Position = UDim2.new(0, 8, 0.5, -9)
+TTBackground.Name = "TitleBackground"
+TTBackground.Size = UDim2.new(0, 170, 0, 24)
+TTBackground.Position = UDim2.new(0, 8, .5, -12)
 TTBackground.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-TTBackground.BackgroundTransparency = 0.2
+TTBackground.BackgroundTransparency = .15
 TTBackground.BorderSizePixel = 0
+TTBackground.ZIndex = 10
+TTBackground.Visible = false
 TTBackground.Parent = TB
 
 local TTCorner = Instance.new("UICorner")
 TTCorner.CornerRadius = UDim.new(0, 6)
 TTCorner.Parent = TTBackground
 
+local TTLogo = Instance.new("ImageLabel")
+TTLogo.Size = UDim2.new(0, 18, 0, 18)
+TTLogo.Position = UDim2.new(0, 4, .5, -9)
+TTLogo.BackgroundTransparency = 1
+TTLogo.Image = "rbxassetid://129798832128767"
+TTLogo.ScaleType = Enum.ScaleType.Crop
+TTLogo.ZIndex = 11
+TTLogo.Parent = TTBackground
+
+local TTLogoCorner = Instance.new("UICorner")
+TTLogoCorner.CornerRadius = UDim.new(0, 4)
+TTLogoCorner.Parent = TTLogo
+
+local TT = Instance.new("TextLabel")
+TT.Name = "TitleText"
+TT.Size = UDim2.new(1, -26, 1, 0)
+TT.Position = UDim2.new(0, 24, 0, 0)
+TT.BackgroundTransparency = 1
+TT.Text = "  PAWLOVY🧸"
+TT.TextColor3 = Color3.fromRGB(255, 255, 255)
+TT.Font = font_pixel
+TT.TextSize = 13
+TT.TextXAlignment = Enum.TextXAlignment.Left
+TT.TextYAlignment = Enum.TextYAlignment.Center
+TT.ZIndex = 11
+TT.Visible = false
 TT.Parent = TTBackground
-TT.Size = UDim2.new(1, 0, 1, 0)
-TT.Position = UDim2.new(0, 0, 0, 0)
-TT.TextXAlignment = Enum.TextXAlignment.Center
 
 local MinB = Instance.new("TextButton")
 MinB.Name = "MinButton"
 MinB.Size = UDim2.new(0, 24, 0, 24)
 MinB.Position = UDim2.new(1, -52, 0, 5)
 MinB.BackgroundColor3 = Color3.fromRGB(50, 55, 60)
-MinB.BackgroundTransparency = 0.2
+MinB.BackgroundTransparency = .2
 MinB.Text = "—"
 MinB.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinB.Font = Enum.Font.GothamMedium
+MinB.Font = font_mac_dinh
 MinB.TextSize = 14
 MinB.ZIndex = 5
+MinB.Visible = false
 MinB.Parent = TB
+
 local MinBC = Instance.new("UICorner")
 MinBC.CornerRadius = UDim.new(0, 6)
 MinBC.Parent = MinB
@@ -400,78 +451,123 @@ ClsB.Name = "CloseButton"
 ClsB.Size = UDim2.new(0, 24, 0, 24)
 ClsB.Position = UDim2.new(1, -24, 0, 5)
 ClsB.BackgroundColor3 = Color3.fromRGB(50, 40, 40)
-ClsB.BackgroundTransparency = 0.2
-ClsB.Text = "✕"
+ClsB.BackgroundTransparency = .2
+ClsB.Text = "X"
 ClsB.TextColor3 = Color3.fromRGB(255, 255, 255)
-ClsB.Font = Enum.Font.GothamMedium
+ClsB.Font = font_mac_dinh
 ClsB.TextSize = 12
 ClsB.ZIndex = 5
+ClsB.Visible = false
 ClsB.Parent = TB
+
 local ClsBC = Instance.new("UICorner")
 ClsBC.CornerRadius = UDim.new(0, 6)
 ClsBC.Parent = ClsB
 
 local ExpandBtn = Instance.new("TextButton")
 ExpandBtn.Name = "ExpandButton"
-ExpandBtn.Size = UDim2.new(1, -8, 1, -8)
-ExpandBtn.Position = UDim2.new(0, 4, 0, 4)
-ExpandBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-ExpandBtn.BackgroundTransparency = 0.2
+ExpandBtn.Size = UDim2.new(1, 0, 1, 0)
+ExpandBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ExpandBtn.BorderSizePixel = 0
 ExpandBtn.Text = ""
-ExpandBtn.Visible = false
+ExpandBtn.Visible = true
 ExpandBtn.Active = false
-ExpandBtn.ZIndex = 10
+ExpandBtn.ZIndex = 19
 ExpandBtn.Parent = MF
+
 local ExpandC = Instance.new("UICorner")
 ExpandC.CornerRadius = UDim.new(0, 10)
 ExpandC.Parent = ExpandBtn
 
 local LogoImage = Instance.new("ImageLabel")
 LogoImage.Name = "LogoImage"
-LogoImage.Size = UDim2.new(1, -8, 1, -8)
-LogoImage.Position = UDim2.new(0, 4, 0, 4)
+LogoImage.AnchorPoint = Vector2.new(.5, .5)
+LogoImage.Position = UDim2.new(.5, 0, .5, 0)
+LogoImage.Size = UDim2.new(1, -4, 1, -4)
 LogoImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-LogoImage.BackgroundTransparency = 0
+LogoImage.BorderSizePixel = 0
 LogoImage.Image = "rbxassetid://129798832128767"
-LogoImage.ScaleType = Enum.ScaleType.Fit
-LogoImage.Visible = true
-LogoImage.ZIndex = 11
+LogoImage.ScaleType = Enum.ScaleType.Crop
+LogoImage.ZIndex = 20
 LogoImage.Parent = ExpandBtn
 
 local LogoCorner = Instance.new("UICorner")
-LogoCorner.CornerRadius = UDim.new(0, 8)
+LogoCorner.CornerRadius = UDim.new(0, 10)
 LogoCorner.Parent = LogoImage
+
+local LogoStroke = Instance.new("UIStroke")
+LogoStroke.Color = Color3.fromRGB(0, 0, 0)
+LogoStroke.Thickness = 0
+LogoStroke.Parent = LogoImage
+
+local PawLabel = Instance.new("TextLabel")
+PawLabel.Name = "PawLabel"
+PawLabel.Size = UDim2.new(1, 0, 0, 12)
+PawLabel.Position = UDim2.new(0, 0, 1, -14)
+PawLabel.BackgroundTransparency = 1
+PawLabel.Text = "PAW"
+PawLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+PawLabel.Font = font_pixel
+PawLabel.TextSize = 9
+PawLabel.TextXAlignment = Enum.TextXAlignment.Center
+PawLabel.ZIndex = 21
+PawLabel.Parent = ExpandBtn
+
+local PawStroke = Instance.new("UIStroke")
+PawStroke.Color = Color3.fromRGB(0, 0, 0)
+PawStroke.Thickness = 1
+PawStroke.Parent = PawLabel
 
 local SB = Instance.new("Frame")
 SB.Name = "SideBar"
-SB.Size = UDim2.new(0, 90, 1, -40)
-SB.Position = UDim2.new(0, 6, 0, 38)
+SB.Size = UDim2.new(0, 92, 1, -48)
+SB.Position = UDim2.new(0, 7, 0, 40)
 SB.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
-SB.BackgroundTransparency = 0.2
+SB.BackgroundTransparency = .15
+SB.Visible = false
 SB.Parent = MF
+
 local SBC = Instance.new("UICorner")
-SBC.CornerRadius = UDim.new(0, 6)
+SBC.CornerRadius = UDim.new(0, 8)
 SBC.Parent = SB
 
 local SBL = Instance.new("UIListLayout")
-SBL.Padding = UDim.new(0, 4)
+SBL.Padding = UDim.new(0, 5)
 SBL.HorizontalAlignment = Enum.HorizontalAlignment.Center
 SBL.SortOrder = Enum.SortOrder.LayoutOrder
 SBL.Parent = SB
+
 local SBPad = Instance.new("UIPadding")
-SBPad.PaddingTop = UDim.new(0, 6)
+SBPad.PaddingTop = UDim.new(0, 7)
+SBPad.PaddingLeft = UDim.new(0, 3)
+SBPad.PaddingRight = UDim.new(0, 3)
 SBPad.Parent = SB
 
 local CA = Instance.new("Frame")
 CA.Name = "ContentArea"
-CA.Size = UDim2.new(1, -108, 1, -46)
-CA.Position = UDim2.new(0, 96, 0, 40)
+CA.Size = UDim2.new(1, -110, 1, -48)
+CA.Position = UDim2.new(0, 104, 0, 40)
 CA.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
-CA.BackgroundTransparency = 0.2
+CA.BackgroundTransparency = .12
+CA.Visible = false
 CA.Parent = MF
+
 local CAC = Instance.new("UICorner")
-CAC.CornerRadius = UDim.new(0, 6)
+CAC.CornerRadius = UDim.new(0, 8)
 CAC.Parent = CA
+
+local NgayLabel = Instance.new("TextLabel")
+NgayLabel.Size = UDim2.new(0, 200, 0, 14)
+NgayLabel.Position = UDim2.new(0, 104, 1, -18)
+NgayLabel.BackgroundTransparency = 1
+NgayLabel.Text = os.date("%d/%m/%Y") .. " — Ver 2.2.0"
+NgayLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
+NgayLabel.Font = font_mac_dinh
+NgayLabel.TextSize = 8
+NgayLabel.TextXAlignment = Enum.TextXAlignment.Left
+NgayLabel.ZIndex = 5
+NgayLabel.Visible = false
+NgayLabel.Parent = MF
 
 local tabs, curTab = {}, nil
 
@@ -479,28 +575,33 @@ local function tao_the(p, t, d, giaTri)
     local c = Instance.new("Frame")
     c.Size = UDim2.new(1, 0, 0, 46)
     c.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
-    c.BackgroundTransparency = 0.2
+    c.BackgroundTransparency = .18
     c.Parent = p
     local cc = Instance.new("UICorner")
-    cc.CornerRadius = UDim.new(0, 6)
+    cc.CornerRadius = UDim.new(0, 7)
     cc.Parent = c
+    local cs = Instance.new("UIStroke")
+    cs.Color = Color3.fromRGB(55, 55, 65)
+    cs.Transparency = .65
+    cs.Thickness = 1
+    cs.Parent = c
     local tl = Instance.new("TextLabel")
     tl.Size = UDim2.new(1, -100, 0, 15)
-    tl.Position = UDim2.new(0, 8, 0, 5)
+    tl.Position = UDim2.new(0, 9, 0, 5)
     tl.BackgroundTransparency = 1
     tl.Text = t
     tl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    tl.Font = Enum.Font.GothamMedium
-    tl.TextSize = 11
+    tl.Font = font_mac_dinh
+    tl.TextSize = 9
     tl.TextXAlignment = Enum.TextXAlignment.Left
     tl.Parent = c
     local dl = Instance.new("TextLabel")
     dl.Size = UDim2.new(1, -100, 0, 12)
-    dl.Position = UDim2.new(0, 8, 0, 22)
+    dl.Position = UDim2.new(0, 9, 0, 23)
     dl.BackgroundTransparency = 1
     dl.Text = d
-    dl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    dl.Font = Enum.Font.Gotham
+    dl.TextColor3 = Color3.fromRGB(175, 175, 185)
+    dl.Font = font_mac_dinh
     dl.TextSize = 8
     dl.TextXAlignment = Enum.TextXAlignment.Left
     dl.TextTruncate = Enum.TextTruncate.AtEnd
@@ -508,12 +609,12 @@ local function tao_the(p, t, d, giaTri)
     if giaTri then
         local gia = Instance.new("TextLabel")
         gia.Size = UDim2.new(0, 90, 0, 14)
-        gia.Position = UDim2.new(1, -130, 0, 5)
+        gia.Position = UDim2.new(1, -100, 0, 5)
         gia.BackgroundTransparency = 1
         gia.Text = giaTri
         gia.TextColor3 = Color3.fromRGB(255, 255, 255)
-        gia.Font = Enum.Font.GothamBold
-        gia.TextSize = 9
+        gia.Font = font_dam
+        gia.TextSize = 8
         gia.TextXAlignment = Enum.TextXAlignment.Right
         gia.Parent = c
         return c, gia
@@ -524,16 +625,16 @@ end
 local function tao_nut_bat_tat(p)
     local tf = Instance.new("Frame")
     tf.Size = UDim2.new(0, 32, 0, 18)
-    tf.Position = UDim2.new(1, -42, 0.5, -9)
+    tf.Position = UDim2.new(1, -42, .5, -9)
     tf.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
-    tf.BackgroundTransparency = 0.2
+    tf.BackgroundTransparency = .2
     tf.Parent = p
     local tfc = Instance.new("UICorner")
     tfc.CornerRadius = UDim.new(1, 0)
     tfc.Parent = tf
     local kn = Instance.new("Frame")
     kn.Size = UDim2.new(0, 12, 0, 12)
-    kn.Position = UDim2.new(0, 3, 0.5, -6)
+    kn.Position = UDim2.new(0, 3, .5, -6)
     kn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     kn.Parent = tf
     local knc = Instance.new("UICorner")
@@ -542,9 +643,13 @@ local function tao_nut_bat_tat(p)
     local on, cb = false, nil
     local function Set(o, trig)
         on = o
-        local ti = TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-        TweenService:Create(tf, ti, {BackgroundColor3 = o and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)}):Play()
-        TweenService:Create(kn, ti, {Position = o and UDim2.new(1, -15, 0.5, -6) or UDim2.new(0, 3, 0.5, -6)}):Play()
+        local ti = TweenInfo.new(.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+        TweenService:Create(tf, ti, {
+            BackgroundColor3 = o and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)
+        }):Play()
+        TweenService:Create(kn, ti, {
+            Position = o and UDim2.new(1, -15, .5, -6) or UDim2.new(0, 3, .5, -6)
+        }):Play()
         if trig ~= false and cb then cb(o) end
     end
     local bt = Instance.new("TextButton")
@@ -552,35 +657,41 @@ local function tao_nut_bat_tat(p)
     bt.BackgroundTransparency = 1
     bt.Text = ""
     bt.Parent = tf
-    bt.MouseButton1Click:Connect(function() Set(not on, true) end)
-    return {OnChange = function(_, c) cb = c end}
+    bt.MouseButton1Click:Connect(function()
+        Set(not on, true)
+    end)
+    return {
+        OnChange = function(_, c)
+            cb = c
+        end
+    }
 end
 
 local function tao_nut_dung(p)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(0, 48, 0, 22)
-    b.Position = UDim2.new(1, -58, 0.5, -11)
+    b.Position = UDim2.new(1, -58, .5, -11)
     b.BackgroundColor3 = Color3.fromRGB(80, 60, 200)
-    b.BackgroundTransparency = 0.2
+    b.BackgroundTransparency = .2
     b.Text = "DÙNG"
     b.TextColor3 = Color3.fromRGB(255, 255, 255)
-    b.Font = Enum.Font.GothamMedium
-    b.TextSize = 9
+    b.Font = font_mac_dinh
+    b.TextSize = 8
     b.Parent = p
     local bc = Instance.new("UICorner")
-    bc.CornerRadius = UDim.new(0, 4)
+    bc.CornerRadius = UDim.new(0, 5)
     bc.Parent = b
     return b
 end
 
 local function tao_phan_cach(p, text)
     local sep = Instance.new("TextLabel")
-    sep.Size = UDim2.new(1, 0, 0, 18)
+    sep.Size = UDim2.new(1, 0, 0, 20)
     sep.BackgroundTransparency = 1
     sep.Text = text
     sep.TextColor3 = Color3.fromRGB(255, 255, 255)
-    sep.Font = Enum.Font.GothamBlack
-    sep.TextSize = 12
+    sep.Font = font_mac_dinh
+    sep.TextSize = 11
     sep.TextXAlignment = Enum.TextXAlignment.Center
     sep.Parent = p
     return sep
@@ -598,24 +709,18 @@ local function xay_dung_noi_dung()
 
     local function tao_nut_tab(icon, name, order)
         local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1, -4, 0, 28)
+        b.Size = UDim2.new(1, -4, 0, 29)
         b.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
-        b.BackgroundTransparency = 0.2
+        b.BackgroundTransparency = .15
         b.Text = icon .. "  " .. name
-        b.TextColor3 = Color3.fromRGB(255, 255, 255)
-        b.Font = Enum.Font.GothamMedium
-        b.TextSize = 10
+        b.TextColor3 = Color3.fromRGB(190, 190, 200)
+        b.Font = font_mac_dinh
+        b.TextSize = 8
         b.LayoutOrder = order
         b.Parent = SB
         local bc = Instance.new("UICorner")
-        bc.CornerRadius = UDim.new(0, 5)
+        bc.CornerRadius = UDim.new(0, 6)
         bc.Parent = b
-        b.MouseEnter:Connect(function()
-            if curTab and curTab.B ~= b then b.BackgroundColor3 = Color3.fromRGB(32, 34, 38) end
-        end)
-        b.MouseLeave:Connect(function()
-            if curTab and curTab.B ~= b then b.BackgroundColor3 = Color3.fromRGB(26, 26, 30) end
-        end)
         return b
     end
 
@@ -626,12 +731,15 @@ local function xay_dung_noi_dung()
     cf1.BackgroundTransparency = 1
     cf1.Visible = false
     cf1.Parent = CA
+
     local sf1 = Instance.new("ScrollingFrame")
     sf1.Size = UDim2.new(1, 0, 1, 0)
     sf1.BackgroundTransparency = 1
+    sf1.BorderSizePixel = 0
     sf1.ScrollBarThickness = 3
     sf1.CanvasSize = UDim2.new(0, 0, 0, 0)
     sf1.Parent = cf1
+
     local sl1 = Instance.new("UIListLayout")
     sl1.Padding = UDim.new(0, 6)
     sl1.SortOrder = Enum.SortOrder.LayoutOrder
@@ -642,17 +750,22 @@ local function xay_dung_noi_dung()
     tao_nut_dung(tao_the(sf1, "FARM SLAY (CHỦ)", "Auto farm Slay acc chủ")).MouseButton1Click:Connect(function()
         chay_script("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20SLAY%20ACC%20CH%E1%BB%A6", "slay_chu")
     end)
+
     tao_nut_dung(tao_the(sf1, "FARM SLAY (CLONE)", "Auto farm Slay acc clone")).MouseButton1Click:Connect(function()
         chay_script("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20SLAY%20ACC%20CLONE", "slay_clone")
     end)
+
     tao_nut_dung(tao_the(sf1, "FARM PIZZA", "Auto farm Pizza")).MouseButton1Click:Connect(function()
         chay_script("https://raw.githubusercontent.com/trunghieugun09-creator/CODE-DIVAZ/refs/heads/main/%5BFARM%5D%20PIZZA", "pizza")
     end)
 
     tao_phan_cach(sf1, "AUTO")
 
-    local the_cuop, nhan_cuop = tao_the(sf1, "AUTO NGÂN HÀNG", "Auto lấy khiên Divaz (18:00 - 7:00)", "Loot: 0")
+    local the_cuop, nhan_cuop = tao_the(sf1, "AUTO NGÂN HÀNG", "Auto lấy khiên Divaz (18:00 - 7:00)", "      Loot: 0")
     nhan_lan_cuop = nhan_cuop
+    nhan_cuop.Size = UDim2.new(0, 140, 0, 14)
+    nhan_cuop.Position = UDim2.new(1, -150, 0, 5)
+    nhan_cuop.TextXAlignment = Enum.TextXAlignment.Right
     tao_nut_bat_tat(the_cuop):OnChange(function(o)
         tu_cuop_ngan_hang = o
         if tu_cuop_ngan_hang then
@@ -665,6 +778,9 @@ local function xay_dung_noi_dung()
 
     local the_mong, nhan_mong = tao_the(sf1, "AUTO QUAY MÓNG", "Dừng khi có tool Flick hoặc Nails", "0 lần - 0đ")
     nhan_quay_mong = nhan_mong
+    nhan_mong.Size = UDim2.new(0, 140, 0, 14)
+    nhan_mong.Position = UDim2.new(1, -150, 0, 5)
+    nhan_mong.TextXAlignment = Enum.TextXAlignment.Right
     tao_nut_bat_tat(the_mong):OnChange(function(o)
         tu_quay_mong = o
         if tu_quay_mong then
@@ -676,6 +792,9 @@ local function xay_dung_noi_dung()
 
     local the_thung, nhan_thung = tao_the(sf1, "AUTO QUAY THÙNG ELEMENTAL", "Auto quay Elemental Weapon Crate", "0 lần - 0đ")
     nhan_quay_thung = nhan_thung
+    nhan_thung.Size = UDim2.new(0, 140, 0, 14)
+    nhan_thung.Position = UDim2.new(1, -150, 0, 5)
+    nhan_thung.TextXAlignment = Enum.TextXAlignment.Right
     tao_nut_bat_tat(the_thung):OnChange(function(o)
         tu_quay_thung = o
         if tu_quay_thung then
@@ -694,13 +813,14 @@ local function xay_dung_noi_dung()
                 nhan_quay_thung.Text = lan_quay_thung .. " lần - " .. tien_quay_thung .. "đ"
             end
             if nhan_lan_cuop and nhan_lan_cuop.Parent then
-                nhan_lan_cuop.Text = "Loot: " .. lan_cuop
+                nhan_lan_cuop.Text = "      Loot: " .. lan_cuop
             end
-            task.wait(0.5)
+            task.wait(.5)
         end
     end)
 
     sf1.CanvasSize = UDim2.new(0, 0, 0, #sf1:GetChildren() * 52 + 4)
+
     local tb1 = tao_nut_tab("💅🏻", "Divaz", 1)
 
     local cf2 = Instance.new("Frame")
@@ -710,12 +830,15 @@ local function xay_dung_noi_dung()
     cf2.BackgroundTransparency = 1
     cf2.Visible = false
     cf2.Parent = CA
+
     local sf2 = Instance.new("ScrollingFrame")
     sf2.Size = UDim2.new(1, 0, 1, 0)
     sf2.BackgroundTransparency = 1
+    sf2.BorderSizePixel = 0
     sf2.ScrollBarThickness = 3
     sf2.CanvasSize = UDim2.new(0, 0, 0, 0)
     sf2.Parent = cf2
+
     local sl2 = Instance.new("UIListLayout")
     sl2.Padding = UDim.new(0, 6)
     sl2.SortOrder = Enum.SortOrder.LayoutOrder
@@ -730,9 +853,277 @@ local function xay_dung_noi_dung()
     end)
 
     sf2.CanvasSize = UDim2.new(0, 0, 0, #sf2:GetChildren() * 52 + 4)
+
     local tb2 = tao_nut_tab("⚙️", "Tiện Ích", 2)
 
-    tabs = { {B = tb1, C = cf1}, {B = tb2, C = cf2} }
+    local cf3 = Instance.new("Frame")
+    cf3.Name = "TabInfo"
+    cf3.Size = UDim2.new(1, -16, 1, -16)
+    cf3.Position = UDim2.new(0, 8, 0, 8)
+    cf3.BackgroundTransparency = 1
+    cf3.Visible = false
+    cf3.Parent = CA
+
+    local sf3 = Instance.new("ScrollingFrame")
+    sf3.Size = UDim2.new(1, 0, 1, 0)
+    sf3.BackgroundTransparency = 1
+    sf3.BorderSizePixel = 0
+    sf3.ScrollBarThickness = 3
+    sf3.CanvasSize = UDim2.new(0, 0, 0, 0)
+    sf3.Parent = cf3
+
+    local sl3 = Instance.new("UIListLayout")
+    sl3.Padding = UDim.new(0, 7)
+    sl3.SortOrder = Enum.SortOrder.LayoutOrder
+    sl3.Parent = sf3
+
+    local khung_toi = Instance.new("Frame")
+    khung_toi.Size = UDim2.new(1, -4, 0, 72)
+    khung_toi.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+    khung_toi.BackgroundTransparency = .1
+    khung_toi.Parent = sf3
+
+    local goc_toi = Instance.new("UICorner")
+    goc_toi.CornerRadius = UDim.new(0, 9)
+    goc_toi.Parent = khung_toi
+
+    local vien_toi = Instance.new("UIStroke")
+    vien_toi.Color = Color3.fromRGB(75, 75, 90)
+    vien_toi.Transparency = .45
+    vien_toi.Thickness = 1
+    vien_toi.Parent = khung_toi
+
+    local avt_toi = Instance.new("ImageLabel")
+    avt_toi.Size = UDim2.new(0, 50, 0, 50)
+    avt_toi.Position = UDim2.new(0, 10, .5, -25)
+    avt_toi.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+    avt_toi.BackgroundTransparency = .1
+    avt_toi.Image = Players:GetUserThumbnailAsync(nguoi_choi.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
+    avt_toi.Parent = khung_toi
+
+    local goc_avt = Instance.new("UICorner")
+    goc_avt.CornerRadius = UDim.new(1, 0)
+    goc_avt.Parent = avt_toi
+
+    local vien_avt = Instance.new("UIStroke")
+    vien_avt.Color = Color3.fromRGB(255, 255, 255)
+    vien_avt.Transparency = .5
+    vien_avt.Thickness = 1
+    vien_avt.Parent = avt_toi
+
+    local ten_toi = Instance.new("TextLabel")
+    ten_toi.Size = UDim2.new(1, -150, 0, 20)
+    ten_toi.Position = UDim2.new(0, 70, 0, 10)
+    ten_toi.BackgroundTransparency = 1
+    ten_toi.Text = nguoi_choi.DisplayName
+    ten_toi.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ten_toi.Font = font_mac_dinh
+    ten_toi.TextSize = 10
+    ten_toi.TextXAlignment = Enum.TextXAlignment.Left
+    ten_toi.TextTruncate = Enum.TextTruncate.AtEnd
+    ten_toi.Parent = khung_toi
+
+    local username = Instance.new("TextLabel")
+    username.Size = UDim2.new(1, -150, 0, 14)
+    username.Position = UDim2.new(0, 70, 0, 31)
+    username.BackgroundTransparency = 1
+    username.Text = "@" .. nguoi_choi.Name
+    username.TextColor3 = Color3.fromRGB(170, 170, 185)
+    username.Font = font_mac_dinh
+    username.TextSize = 9
+    username.TextXAlignment = Enum.TextXAlignment.Left
+    username.Parent = khung_toi
+
+    local uid_toi = Instance.new("TextLabel")
+    uid_toi.Size = UDim2.new(1, -150, 0, 14)
+    uid_toi.Position = UDim2.new(0, 70, 0, 48)
+    uid_toi.BackgroundTransparency = 1
+    uid_toi.Text = "UID: " .. nguoi_choi.UserId
+    uid_toi.TextColor3 = Color3.fromRGB(135, 135, 150)
+    uid_toi.Font = font_mac_dinh
+    uid_toi.TextSize = 8
+    uid_toi.TextXAlignment = Enum.TextXAlignment.Left
+    uid_toi.Parent = khung_toi
+
+    local tg_box = Instance.new("Frame")
+    tg_box.Size = UDim2.new(0, 76, 0, 38)
+    tg_box.Position = UDim2.new(1, -86, .5, -19)
+    tg_box.BackgroundColor3 = Color3.fromRGB(24, 24, 29)
+    tg_box.BackgroundTransparency = .1
+    tg_box.Parent = khung_toi
+
+    local tg_corner = Instance.new("UICorner")
+    tg_corner.CornerRadius = UDim.new(0, 7)
+    tg_corner.Parent = tg_box
+
+    local tg_title = Instance.new("TextLabel")
+    tg_title.Size = UDim2.new(1, 0, 0, 12)
+    tg_title.Position = UDim2.new(0, 0, 0, 4)
+    tg_title.BackgroundTransparency = 1
+    tg_title.Text = "SESSION"
+    tg_title.TextColor3 = Color3.fromRGB(140, 140, 155)
+    tg_title.Font = font_mac_dinh
+    tg_title.TextSize = 7
+    tg_title.Parent = tg_box
+
+    local tg_toi = Instance.new("TextLabel")
+    tg_toi.Size = UDim2.new(1, 0, 0, 18)
+    tg_toi.Position = UDim2.new(0, 0, 0, 16)
+    tg_toi.BackgroundTransparency = 1
+    tg_toi.Text = "00:00:00"
+    tg_toi.TextColor3 = Color3.fromRGB(255, 200, 50)
+    tg_toi.Font = font_mac_dinh
+    tg_toi.TextSize = 8
+    tg_toi.Parent = tg_box
+
+    task.spawn(function()
+        while SG and SG.Parent do
+            local giay = os.time() - thoi_diem_chay
+            tg_toi.Text = string.format("%02d:%02d:%02d", math.floor(giay / 3600), math.floor((giay % 3600) / 60), giay % 60)
+            task.wait(1)
+        end
+    end)
+
+    local khung_game = Instance.new("Frame")
+    khung_game.Size = UDim2.new(1, -4, 0, 72)
+    khung_game.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+    khung_game.BackgroundTransparency = .1
+    khung_game.Parent = sf3
+
+    local goc_game = Instance.new("UICorner")
+    goc_game.CornerRadius = UDim.new(0, 9)
+    goc_game.Parent = khung_game
+
+    local vien_game = Instance.new("UIStroke")
+    vien_game.Color = Color3.fromRGB(75, 75, 90)
+    vien_game.Transparency = .45
+    vien_game.Thickness = 1
+    vien_game.Parent = khung_game
+
+    local avt_game = Instance.new("ImageLabel")
+    avt_game.Size = UDim2.new(0, 50, 0, 50)
+    avt_game.Position = UDim2.new(0, 10, .5, -25)
+    avt_game.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+    avt_game.BackgroundTransparency = .1
+    avt_game.Image = "rbxassetid://0"
+    avt_game.Parent = khung_game
+
+    local goc_avt_game = Instance.new("UICorner")
+    goc_avt_game.CornerRadius = UDim.new(1, 0)
+    goc_avt_game.Parent = avt_game
+
+    local vien_avt_game = Instance.new("UIStroke")
+    vien_avt_game.Color = Color3.fromRGB(255, 255, 255)
+    vien_avt_game.Transparency = .5
+    vien_avt_game.Thickness = 1
+    vien_avt_game.Parent = avt_game
+
+    local ten_game = Instance.new("TextLabel")
+    ten_game.Size = UDim2.new(1, -150, 0, 20)
+    ten_game.Position = UDim2.new(0, 70, 0, 10)
+    ten_game.BackgroundTransparency = 1
+    ten_game.Text = "Game: " .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+    ten_game.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ten_game.Font = font_mac_dinh
+    ten_game.TextSize = 9
+    ten_game.TextXAlignment = Enum.TextXAlignment.Left
+    ten_game.TextTruncate = Enum.TextTruncate.AtEnd
+    ten_game.Parent = khung_game
+
+    local id_game = Instance.new("TextLabel")
+    id_game.Size = UDim2.new(1, -150, 0, 14)
+    id_game.Position = UDim2.new(0, 70, 0, 31)
+    id_game.BackgroundTransparency = 1
+    id_game.Text = "ID: " .. game.PlaceId
+    id_game.TextColor3 = Color3.fromRGB(170, 170, 185)
+    id_game.Font = font_mac_dinh
+    id_game.TextSize = 9
+    id_game.TextXAlignment = Enum.TextXAlignment.Left
+    id_game.Parent = khung_game
+
+    local jobid_game = Instance.new("TextLabel")
+    jobid_game.Size = UDim2.new(1, -150, 0, 14)
+    jobid_game.Position = UDim2.new(0, 70, 0, 48)
+    jobid_game.BackgroundTransparency = 1
+    jobid_game.Text = "JobId: " .. game.JobId
+    jobid_game.TextColor3 = Color3.fromRGB(135, 135, 150)
+    jobid_game.Font = font_mac_dinh
+    jobid_game.TextSize = 8
+    jobid_game.TextXAlignment = Enum.TextXAlignment.Left
+    jobid_game.TextTruncate = Enum.TextTruncate.AtEnd
+    jobid_game.Parent = khung_game
+
+    local gio_box = Instance.new("Frame")
+    gio_box.Size = UDim2.new(0, 76, 0, 38)
+    gio_box.Position = UDim2.new(1, -86, .5, -19)
+    gio_box.BackgroundColor3 = Color3.fromRGB(24, 24, 29)
+    gio_box.BackgroundTransparency = .1
+    gio_box.Parent = khung_game
+
+    local gio_corner = Instance.new("UICorner")
+    gio_corner.CornerRadius = UDim.new(0, 7)
+    gio_corner.Parent = gio_box
+
+    local gio_title = Instance.new("TextLabel")
+    gio_title.Size = UDim2.new(1, 0, 0, 12)
+    gio_title.Position = UDim2.new(0, 0, 0, 4)
+    gio_title.BackgroundTransparency = 1
+    gio_title.Text = "GIỜ MAP"
+    gio_title.TextColor3 = Color3.fromRGB(140, 140, 155)
+    gio_title.Font = font_mac_dinh
+    gio_title.TextSize = 7
+    gio_title.Parent = gio_box
+
+    local gio_toi = Instance.new("TextLabel")
+    gio_toi.Size = UDim2.new(1, 0, 0, 18)
+    gio_toi.Position = UDim2.new(0, 0, 0, 16)
+    gio_toi.BackgroundTransparency = 1
+    gio_toi.Text = "00:00"
+    gio_toi.TextColor3 = Color3.fromRGB(255, 200, 50)
+    gio_toi.Font = font_mac_dinh
+    gio_toi.TextSize = 8
+    gio_toi.Parent = gio_box
+
+    task.spawn(function()
+        while SG and SG.Parent do
+            local h, mi = lay_gio_game()
+            gio_toi.Text = string.format("%02d:%02d", h, mi)
+            task.wait(1)
+        end
+    end)
+
+    task.spawn(function()
+        pcall(function()
+            local info = MarketplaceService:GetProductInfo(game.PlaceId)
+            avt_game.Image = info.IconImageAssetId or "rbxassetid://0"
+        end)
+    end)
+
+    local info = Instance.new("TextLabel")
+    info.Size = UDim2.new(1, -4, 0, 30)
+    info.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+    info.BackgroundTransparency = .15
+    info.Text = "  #pawne"
+    info.TextColor3 = Color3.fromRGB(190, 190, 205)
+    info.Font = font_mac_dinh
+    info.TextSize = 8
+    info.TextXAlignment = Enum.TextXAlignment.Left
+    info.Parent = sf3
+
+    local infoCorner = Instance.new("UICorner")
+    infoCorner.CornerRadius = UDim.new(0, 7)
+    infoCorner.Parent = info
+
+    sf3.CanvasSize = UDim2.new(0, 0, 0, 200)
+
+    local tb3 = tao_nut_tab("🧑🏻", "Info", 3)
+
+    tabs = {
+        {B = tb1, C = cf1},
+        {B = tb2, C = cf2},
+        {B = tb3, C = cf3}
+    }
+
     for _, td in ipairs(tabs) do
         td.B.MouseButton1Click:Connect(function()
             if curTab then
@@ -746,6 +1137,7 @@ local function xay_dung_noi_dung()
             td.C.Visible = true
         end)
     end
+
     curTab = tabs[1]
     curTab.B.BackgroundColor3 = Color3.fromRGB(40, 42, 48)
     curTab.B.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -754,58 +1146,72 @@ end
 
 xay_dung_noi_dung()
 
-local isMin, curTween = false, nil
-local bigPos = MF.Position
-local smallPos = UDim2.new(bigPos.X.Scale, bigPos.X.Offset + 224, bigPos.Y.Scale, bigPos.Y.Offset + 134)
+local isMin = true
+local curTween = nil
+local bigPos = UDim2.new(.5, -250, .5, -160)
+local smallPos = UDim2.new(.5, -26, .1, 0)
 
-local function TweenGUI(ts, tp, cr)
+local function tween_gui(ts, tp, cr)
     if curTween then curTween:Cancel() end
-    local ti = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    local ti = TweenInfo.new(.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
     local sT = TweenService:Create(MF, ti, {Size = ts})
     sT:Play()
     TweenService:Create(MF, ti, {Position = tp}):Play()
     TweenService:Create(MFC, ti, {CornerRadius = cr}):Play()
     curTween = sT
-    sT.Completed:Connect(function() curTween = nil end)
+    sT.Completed:Connect(function()
+        curTween = nil
+    end)
 end
 
 local function thu_nho()
     if isMin then return end
     isMin = true
     bigPos = MF.Position
-    TweenGUI(UDim2.new(0, 52, 0, 52), smallPos, UDim.new(0, 10))
+    tween_gui(UDim2.new(0, 52, 0, 52), smallPos, UDim.new(0, 10))
     SB.Visible = false
     CA.Visible = false
     TT.Visible = false
+    TTBackground.Visible = false
     ClsB.Visible = false
     MinB.Visible = false
     TBCover.Visible = false
+    NgayLabel.Visible = false
     TB.Size = UDim2.new(1, 0, 1, 0)
     TB.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
     ExpandBtn.Visible = true
     LogoImage.Visible = true
+    PawLabel.Visible = true
 end
 
 local function phong_to()
     if not isMin then return end
     isMin = false
     smallPos = MF.Position
-    TweenGUI(UDim2.new(0, 500, 0, 320), bigPos, UDim.new(0, 10))
+    tween_gui(UDim2.new(0, 500, 0, 320), bigPos, UDim.new(0, 10))
     ExpandBtn.Visible = false
     LogoImage.Visible = false
+    PawLabel.Visible = false
     SB.Visible = true
     CA.Visible = true
     TT.Visible = true
+    TTBackground.Visible = true
     ClsB.Visible = true
     MinB.Visible = true
     TBCover.Visible = true
+    NgayLabel.Visible = true
     TB.Size = UDim2.new(1, 0, 0, 34)
     TB.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
 end
 
 MinB.MouseButton1Click:Connect(function()
-    if isMin then phong_to() else thu_nho() end
+    if isMin then
+        phong_to()
+    else
+        thu_nho()
+    end
 end)
+
 ExpandBtn.MouseButton1Click:Connect(phong_to)
 
 ClsB.MouseButton1Click:Connect(function()
@@ -817,17 +1223,21 @@ ClsB.MouseButton1Click:Connect(function()
     SG:Destroy()
 end)
 
-local function blockCamera()
-    ContextActionService:BindAction("BlockCam", function() return Enum.ContextActionResult.Sink end, false, Enum.UserInputType.MouseButton2, Enum.UserInputType.Touch)
+local function block_camera()
+    ContextActionService:BindAction("BlockCam", function()
+        return Enum.ContextActionResult.Sink
+    end, false, Enum.UserInputType.MouseButton2, Enum.UserInputType.Touch)
 end
 
-local function unblockCamera()
-    pcall(function() ContextActionService:UnbindAction("BlockCam") end)
+local function unblock_camera()
+    pcall(function()
+        ContextActionService:UnbindAction("BlockCam")
+    end)
 end
 
 local dragStart, dragPos, dragging, hasMoved, activeInput = nil, nil, false, false, nil
 
-local function onInputBegan(input)
+local function on_input_began(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         if activeInput then return end
         activeInput = input
@@ -835,24 +1245,30 @@ local function onInputBegan(input)
         dragPos = MF.Position
         dragging = true
         hasMoved = false
-        blockCamera()
+        block_camera()
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 if input == activeInput then
-                    if isMin and not hasMoved then phong_to() end
+                    if isMin and not hasMoved then
+                        phong_to()
+                    end
                     if hasMoved then
-                        if isMin then smallPos = MF.Position else bigPos = MF.Position end
+                        if isMin then
+                            smallPos = MF.Position
+                        else
+                            bigPos = MF.Position
+                        end
                     end
                     dragging = false
                     activeInput = nil
-                    unblockCamera()
+                    unblock_camera()
                 end
             end
         end)
     end
 end
 
-local function onInputChanged(input)
+local function on_input_changed(input)
     if not dragging or input ~= activeInput then return end
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
         local delta = input.Position - dragStart
@@ -864,9 +1280,11 @@ local function onInputChanged(input)
 end
 
 TB.InputBegan:Connect(function(i)
-    if not isMin then onInputBegan(i) end
+    if not isMin then on_input_began(i) end
 end)
+
 MF.InputBegan:Connect(function(i)
-    if isMin then onInputBegan(i) end
+    if isMin then on_input_began(i) end
 end)
-UIS.InputChanged:Connect(onInputChanged)
+
+UIS.InputChanged:Connect(on_input_changed)
